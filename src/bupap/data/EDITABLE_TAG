@@ -1,0 +1,3 @@
+How this works:
+
+This file is NOT installed with the package. However, if we install the package in editable mode, the file will be available.

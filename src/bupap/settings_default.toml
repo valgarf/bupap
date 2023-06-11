@@ -1,0 +1,16 @@
+[default]
+show=false
+host="0.0.0.0"
+port=8123
+testdata=true
+
+    [default.logging]
+    show_sql_commands=false
+
+    [default.db]
+    data_dir = "@jinja {% if this.editable %}{{this.pkg_root}}/data{% else %}{{this.user_data_dir}}{% endif %}"
+    url = "@jinja sqlite+pysqlite:///{{this.db.data_dir}}/db.sqlite"
+
+[testing]
+testdata=true
+initial_admin_password="admin"
