@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import sqlalchemy as sa
-from fastapi import Request, Response
+from fastapi import HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
 from loguru import logger
 from nicegui import app, dependencies, ui
@@ -83,7 +83,7 @@ def run():
         except Exception:
             # could not reach frontend (client not yet connected?)
             logger.opt(exception=exc).error("Failed to display exception to user:")
-        return Response("Internal server error", status_code=500)
+        raise HTTPException(status_code=500, detail="Internal server error")
     
     page.create_all_pages()
     ui.run(
