@@ -5,6 +5,7 @@ description = ""
 authors = ["valgarf <valgarf@posteo.de>"]
 license = "AGPL-3.0-or-later"
 readme = "README.md"
+repository = "https://github.com/valgarf/bupap"
 include = ["README.md", "settings.toml"]
 exclude = ["src/bupap/data/EDITABLE_TAG"]
 
