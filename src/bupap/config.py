@@ -20,11 +20,11 @@ if not "BUPAP_ENV" in os.environ:
 
 settings = Dynaconf(
     envvar_prefix="BUPAP",
+    env_switcher="BUPAP_ENV",
+    merge_enable=True,
     root_path=Path().resolve(),
     settings_files=settings_files,
     environments=True,
-    env_switcher="BUPAP_ENV",
-    merge_enable=True,
     validators=[
         Validator("initial_admin_password", default=None),
         Validator("editable", default=(Path(__file__).parent / "data" / "EDITABLE_TAG").exists()),

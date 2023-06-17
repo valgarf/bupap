@@ -14,7 +14,6 @@ RUN pip install "poetry==$POETRY_VERSION" \
     && poetry config virtualenvs.create false
 
 # Copy only requirements to cache them in docker layer
-COPY docker/target/* /
 WORKDIR /app
 
 
@@ -24,12 +23,17 @@ WORKDIR /app
 
 FROM python-base as debug
 
-# Copy whole project (maybe )
-COPY ./src /app/src
+# only copy poetry stuff
 COPY poetry.lock pyproject.toml poetry.toml README.md LICENSE /app/
+# install requirements
+RUN poetry install --no-root --no-dev --no-interaction --no-ansi
+
+# Copy whole project
+COPY ./src /app/src
 # editable install
 RUN poetry install --no-interaction --no-ansi \
     && mkdir ./data
+COPY docker/target/* /
 
 CMD "bupap"
 
@@ -40,12 +44,14 @@ CMD "bupap"
 FROM python-base as release
 
 COPY poetry.lock pyproject.toml poetry.toml /app/
+RUN poetry install --no-root --no-dev --no-interaction --no-ansi
+
 ARG APP_VERSION
 COPY "./dist/bupap-${APP_VERSION}-py3-none-any.whl" /app/dist/
 
-RUN poetry install --no-root --no-dev --no-interaction --no-ansi \
-    && python -m pip install /app/dist/bupap-${APP_VERSION}-py3-none-any.whl \
+RUN python -m pip install /app/dist/bupap-${APP_VERSION}-py3-none-any.whl \
     && mkdir ./data
+COPY docker/target/* /
 
 CMD "bupap"
 
