@@ -7,12 +7,16 @@ PROJECT_ROOT = Path(__file__).parent.parent
 class AppInfo:
     name: str
     version: str
+
+    _instance = None
     @classmethod
     def get(cls, ctx):
-        with ctx.cd(PROJECT_ROOT):
-            app_info: str = ctx.run('poetry version', hide=True).stdout.strip()
-            return cls(*[el.strip() for el in app_info.rsplit(maxsplit=1)])
-
+        if cls._instance is None:
+            with ctx.cd(PROJECT_ROOT):
+                app_info: str = ctx.run('poetry version', hide=True).stdout.strip()
+                cls._instance = cls(*[el.strip() for el in app_info.rsplit(maxsplit=1)])
+        return cls._instance
+    
 def get_config(ctx, key):
     """ 
     Requires the package to be installed locally!

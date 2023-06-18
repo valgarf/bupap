@@ -2,8 +2,8 @@ from pathlib import Path
 
 from invoke import task
 
-from .dev import install
 from .helper import PROJECT_ROOT, AppInfo, get_config
+from .local import install
 
 
 @task
