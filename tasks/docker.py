@@ -2,23 +2,52 @@ from pathlib import Path
 
 from invoke import task
 
-project_root = Path(__file__).parent.parent
+from .dev import install
+from .helper import PROJECT_ROOT, AppInfo, get_config
+
 
 @task
-def build(c, target="debug"):
-    with c.cd(project_root):
-        app_info = c.run('poetry version', hide=True).stdout.strip()
-        app_version = c.run('poetry version -s', hide=True).stdout.strip()
-        app_name = app_info[:-len(app_version)].strip()
-        c.run(f'docker build --target {target} -t {app_name}:{target}-{app_version} -f ./docker/Dockerfile --build-arg="APP_VERSION={app_version}"  .')
+def build(ctx, target=None):
+    target = target or ctx.docker.target.build
+    app_info = AppInfo.get(ctx)
+    if target == "all":
+        targets = ["base", "poetry-base", "debug", "release-build", "release"] #"release-test"
+    else:
+        targets = [target]
+    with ctx.cd(PROJECT_ROOT):
+        for target in targets:
+            if target == "release":
+                tag = app_info.version
+            else:        
+                tag = f"{target}-{app_info.version}"
+            ctx.run(f'docker build --target {target} -t {app_info.name}:{tag} -f ./docker/Dockerfile --build-arg="APP_VERSION={app_info.version}"  .', echo = True)
+            if target == "release":
+                ctx.run(f'docker tag {app_info.name}:{tag} {app_info.name}:latest', echo = True)
 
-@task
-def run(c, target="debug"):
-    app_info = c.run('poetry version', hide=True).stdout.strip()
-    app_version = c.run('poetry version -s', hide=True).stdout.strip()
-    app_name = app_info[:-len(app_version)].strip()
+@task(install)
+def run(ctx, target=None, detach=False, bash=False, name="bupap"):
+    target = target or ctx.docker.target.run
+    
     extra = ""
     if target == "debug":
         extra +=' --mount type=bind,source=./src,target=/app/src'
-    with c.cd(project_root):
-        c.run(f"docker run{extra} {app_name}:{target}-{app_version} bupap", echo=True)
+    if detach:
+        extra +=' --detach'
+    else:
+        extra +=' -it'
+    command = ""
+    if bash:
+        assert not detach
+        command=" bash"
+    
+    app_info = AppInfo.get(ctx)
+    if target == "release":
+        tag = app_info.version
+    else:        
+        tag = f"{target}-{app_info.version}"
+    port = get_config(ctx,"port")
+    if extra and not extra.endswith(" "):
+        extra += " "
+    ctx.run(f"docker stop {name}", echo=True, warn=True)
+    ctx.run(f"docker container rm {name}", echo=True, warn=True)
+    ctx.run(f"docker run -p {port}:80 --name {name}{extra}{app_info.name}:{tag}{command}", echo=True, pty=not detach)

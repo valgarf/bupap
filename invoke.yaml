@@ -1,0 +1,3 @@
+docker:
+  target:
+    run: debug

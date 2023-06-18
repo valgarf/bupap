@@ -18,10 +18,12 @@ if not "BUPAP_ENV" in os.environ:
     os.environ["BUPAP_ENV"] = "testing"
     # TODO: remove me, makes 'testing' the default environment
 
+# os.environ["MERGE_ENABLED_FOR_DYNACONF"] = "1"
 settings = Dynaconf(
     envvar_prefix="BUPAP",
     env_switcher="BUPAP_ENV",
     merge_enable=True,
+    MERGE_ENABLED_FOR_DYNACONF=True,
     root_path=Path().resolve(),
     settings_files=settings_files,
     environments=True,
