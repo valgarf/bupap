@@ -22,7 +22,7 @@ bupap
 
 You can run a new docker container by calling
 ```
-docker run -p 8123:80 --name bupap [-it|--detach] bupap:0.1.0
+docker run -p 8123:80 --name bupap [-it|--detach] valgarf/bupap:latest
 ```
 
 ## First login
