@@ -19,7 +19,7 @@ def poetry(ctx):
     with ctx.cd(PROJECT_ROOT):
         ctx.run("poetry publish")
 
-@task(install, docker_build)
+@task(install, local_build, docker_build)
 def docker(ctx):
     app_info = AppInfo.get(ctx)
     with ctx.cd(PROJECT_ROOT):

@@ -22,7 +22,8 @@ def build(ctx, target=None):
                 tag = f"{target}-{app_info.version}"
             ctx.run(f'docker build --target {target} -t {app_info.name}:{tag} -f ./docker/Dockerfile --build-arg="APP_VERSION={app_info.version}"  .', echo = True)
             if target == "release":
-                ctx.run(f'docker tag {app_info.name}:{tag} {app_info.name}:latest', echo = True)
+                ctx.run(f'docker tag {app_info.name}:{tag} valgarf/{app_info.name}:{tag}', echo = True)
+                ctx.run(f'docker tag {app_info.name}:{tag} valgarf/{app_info.name}:latest', echo = True)
 
 @task(install)
 def run(ctx, target=None, detach=False, bash=False, name="bupap"):
