@@ -286,11 +286,6 @@ def create_teams_page():
             el_pick_date = component.PickDate(on_change=change_date, initial=initial_date)
             ui.button(on_click=btn_right).props("icon=keyboard_arrow_right flat")
             ui.toggle({ScheduleMode.OPTIMISTIC: "optimistic", ScheduleMode.AVERAGE:"average", ScheduleMode.PESSIMISTIC: "pessimistic"}, value=info.schedule_mode).bind_value(info, "schedule_mode").on("update:model-value", update)
-            # .props(options=[
-            #     {"label": 'One', "value": 'one'},
-            #     {"label": 'Two', "value": 'two'},
-            #     {"label": 'Three', "value": 'three'}
-            # ], toggle_color="primary")
         el_gantt = component.Gantt(
             team.name, initial_date, {"team_id": team.id}, partial(_get_gantt_data, info), _open_clicked_item
         )

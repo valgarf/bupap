@@ -44,6 +44,85 @@ def create_tasks_page():
             with ui.tab_panel("Activity"):
                 _task_page_activity(session, shown_task)
 
+    def _task_page_overview_assignee_overview(task: db.Task):
+        with ui.row().classes("self-center items-center"):
+            if not task.finished_at:
+                component.user_card(task.scheduled_assignee)
+                with ui.column().classes("gap-0"):
+                    estimate = get_estimate(task.scheduled_assignee, task)
+                    logger.warning(
+                        f"{estimate.id=}, {estimate.user_id=}, {estimate.task_id=}\n    {estimate.expectation_optimistic=}\n    {estimate.expectation_average=}\n    {estimate.expectation_pessimistic=}"
+                    )
+                    s_end_opt = format_date(task.scheduled_optimistic_end)
+                    s_end_pes = format_date(task.scheduled_pessimistic_end)
+                    s_end_avg = format_date(task.scheduled_average_end)
+                    if s_end_opt != s_end_pes:
+                        lest = ui.label(
+                            f"Estimated Completion: {s_end_opt} - {s_end_pes} (expected: {s_end_avg})"
+                        )
+                    else:
+                        lest = ui.label(f"Estimated Completion: {s_end_avg}")
+                    s_dur_opt = format_timedelta(estimate.expectation_optimistic)
+                    s_dur_pes = format_timedelta(estimate.expectation_pessimistic)
+                    s_dur_avg = format_timedelta(estimate.expectation_average)
+                    ldur = ui.label(
+                        f"Estimated Duration: {s_dur_opt} - {s_dur_pes} (expected: {s_dur_avg})"
+                    )
+                    now = datetime.utcnow()
+                    work = timedelta()
+                    for wp in task.work_periods:
+                        work += ((wp.ended_at or now) - wp.started_at)
+                    s_work = format_timedelta(work)
+                    lwork = ui.label(
+                        f"Spent time: {s_work}"
+                    )
+                    now = datetime.utcnow()
+                    lest.classes("text-base")
+                    ldur.classes("text-base")
+                    lwork.classes("text-base")
+            else:
+                work = {}
+                users = {}
+                for wp in task.work_periods:
+                    if wp.ended_at:
+                        work[wp.user_id] = wp.duration + work.get(
+                            wp.user_id, timedelta()
+                        )
+                        users[wp.user_id] = wp.user
+                columns = [
+                    {
+                        "name": "name",
+                        "label": "Name",
+                        "field": "name",
+                        "required": True,
+                        "align": "left",
+                    },
+                    {
+                        "name": "duration",
+                        "label": "Duration",
+                        "field": "duration",
+                        "required": True,
+                        "align": "right",
+                        "sortOrder": "da",
+                    },
+                ]
+                rows = [
+                    {
+                        "name": "@" + users[uid].name,
+                        "duration": format_timedelta(work[uid]),
+                    }
+                    for uid in work.keys()
+                ]
+                if len(rows) > 1:
+                    rows += [
+                        {
+                            "name": "TOTAL",
+                            "duration": format_timedelta(sum(work.values())),
+                        }
+                    ]
+
+                ui.table(columns=columns, rows=rows, row_key="name")
+
     def _task_page_overview(session: sa.orm.Session, task: db.Task):
         with ui.row().classes("w-full justify-center"):
             with ui.column().classes("place-items-center gap-0 items-stretch grow"):
@@ -53,74 +132,7 @@ def create_tasks_page():
                     ui.badge(task.task_priority.name, color="green").classes("p-1 m-1 text-sm")
                     ui.badge(task.task_state.name, color="blue").classes("p-1 m-1 text-sm")
                 if task.scheduled_assignee:
-                    with ui.row().classes("self-center items-center"):
-                        if not task.finished_at:
-                            component.user_card(task.scheduled_assignee)
-                            with ui.column():
-                                estimate = get_estimate(task.scheduled_assignee, task)
-                                logger.warning(
-                                    f"{estimate.id=}, {estimate.user_id=}, {estimate.task_id=}\n    {estimate.expectation_optimistic=}\n    {estimate.expectation_average=}\n    {estimate.expectation_pessimistic=}"
-                                )
-                                s_end_opt = format_date(task.scheduled_optimistic_end)
-                                s_end_pes = format_date(task.scheduled_pessimistic_end)
-                                s_end_avg = format_date(task.scheduled_average_end)
-                                if s_end_opt != s_end_pes:
-                                    lest = ui.label(
-                                        f"Estimated Completion: {s_end_opt} - {s_end_pes} (expected: {s_end_avg})"
-                                    )
-                                else:
-                                    lest = ui.label(f"Estimated Completion: {s_end_avg}")
-                                s_dur_opt = format_timedelta(estimate.expectation_optimistic)
-                                s_dur_pes = format_timedelta(estimate.expectation_pessimistic)
-                                s_dur_avg = format_timedelta(estimate.expectation_average)
-                                ldur = ui.label(
-                                    f"Estimated Duration: {s_dur_opt} - {s_dur_pes} (expected: {s_dur_avg})"
-                                )
-                                lest.classes("text-base")
-                                ldur.classes("text-base")
-                        else:
-                            work = {}
-                            users = {}
-                            for wp in task.work_periods:
-                                if wp.ended_at:
-                                    work[wp.user_id] = wp.duration + work.get(
-                                        wp.user_id, timedelta()
-                                    )
-                                    users[wp.user_id] = wp.user
-                            columns = [
-                                {
-                                    "name": "name",
-                                    "label": "Name",
-                                    "field": "name",
-                                    "required": True,
-                                    "align": "left",
-                                },
-                                {
-                                    "name": "duration",
-                                    "label": "Duration",
-                                    "field": "duration",
-                                    "required": True,
-                                    "align": "right",
-                                    "sortOrder": "da",
-                                },
-                            ]
-                            rows = [
-                                {
-                                    "name": "@" + users[uid].name,
-                                    "duration": format_timedelta(work[uid]),
-                                }
-                                for uid in work.keys()
-                            ]
-                            if len(rows) > 1:
-                                rows += [
-                                    {
-                                        "name": "TOTAL",
-                                        "duration": format_timedelta(sum(work.values())),
-                                    }
-                                ]
-
-                            ui.table(columns=columns, rows=rows, row_key="name")
-
+                    _task_page_overview_assignee_overview(task)
                 else:
                     ui.label("Not yet scheduled").classes("text-base self-center")
                 ui.markdown(task.description).classes().classes("mt-5")
@@ -169,6 +181,8 @@ def create_tasks_page():
                     )
                     fig.add_trace(go.Scatter(x=x, y=y, line=dict(color="#646464"), name="average"))
                     fig.add_vline(x=task.created_at, line_width=3, line_color="#646464")
+                    for wp in task.work_periods:
+                        fig.add_vrect(x0=wp.started_at, x1=wp.ended_at or now, line_width=0, fillcolor="#9181fa", opacity=0.3)
                     fig.update_layout(
                         margin=dict(l=0, r=0, t=0, b=0),
                         xaxis_range=[xaxis_min, xaxis_max],
