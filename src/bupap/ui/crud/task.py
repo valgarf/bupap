@@ -5,6 +5,7 @@ from itertools import tee
 from typing import overload
 
 import sqlalchemy as sa
+from loguru import logger
 from more_itertools import peekable
 
 from bupap import db
@@ -420,7 +421,7 @@ def run_auto_scheduling(now: datetime | None, external_session: db.Session | Non
         while db_tasks_to_schedule:
             user_state = min(user_states.values(), key=lambda us: us.last_end, default=None)
             if not user_state:
-                print(f"Failed to schedule tasks: {[t.name for t in db_tasks_to_schedule]}")
+                logger.warning(f"Failed to schedule tasks: {[t.name for t in db_tasks_to_schedule]}")
                 break
             db_estimates = [
                 e
