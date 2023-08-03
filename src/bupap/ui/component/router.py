@@ -10,15 +10,12 @@ from urllib.parse import parse_qs, urlencode
 
 from loguru import logger
 from nicegui import background_tasks, ui
-from nicegui.dependencies import register_component
 from starlette import routing
 
 from bupap import db
 from bupap.ui.common import client_data
 
 from .errors import Errors
-
-register_component("router", __file__, "router.js")
 
 
 def _to_js(data):
@@ -37,6 +34,8 @@ class RequestInfo:
     params: Dict[str, Any]
     query_data: Dict[str, Any]
 
+class RouterFrame(ui.element, component="router.js"):
+    pass
 
 class Router:
     routes: list[routing.Route] = []
@@ -62,6 +61,7 @@ class Router:
 
     @Errors.wrap_error("Failed to open page")
     def open(self, path: str, query_data: Union[str, dict] = "", push_state=True):
+        # print(path, query_data, push_state)
         assert isinstance(path, str)
         scope = {"method": "GET", "type": "http", "path": path}
         child_scope = None
@@ -121,10 +121,10 @@ class Router:
         def open_from_browser(msg):
             logger.info(msg)
             self.open(
-                msg["args"]["page"], msg["args"]["query_data"], push_state=msg["args"]["push_state"]
+                msg.args["page"], msg.args["query_data"], push_state=msg.args["push_state"]
             )
 
-        self.content = ui.element("router").on("open", open_from_browser)
+        self.content = RouterFrame().on("open", open_from_browser)
         return self.content
 
     def user(self, session):
@@ -132,7 +132,7 @@ class Router:
 
     @staticmethod
     async def tab_transition_event(evt_data):
-        new_tab = evt_data["args"]
+        new_tab = evt_data.args[0]
         await Router.push_history_callable(path_last_part=new_tab)()
 
     @staticmethod

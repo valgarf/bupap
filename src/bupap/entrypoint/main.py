@@ -8,6 +8,7 @@ from pathlib import Path
 import sqlalchemy as sa
 from fastapi import HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
+from icecream import install
 from loguru import logger
 from nicegui import app, dependencies, ui
 from starlette.middleware.sessions import SessionMiddleware
@@ -49,6 +50,9 @@ def initialise_injection():
 
 
 def run():
+    if settings.editable:
+        install()
+        ic.configureOutput(includeContext=True)
     upgrade_head()
     configure_logging()
     injection_container = initialise_injection()

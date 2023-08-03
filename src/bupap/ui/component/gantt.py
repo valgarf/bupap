@@ -5,12 +5,9 @@ from functools import lru_cache
 from typing import Any, Callable, Optional
 
 from loguru import logger
-from nicegui.dependencies import register_component
-from nicegui.element import Element
+from nicegui import ui
 
 from .errors import Errors
-
-register_component("gantt", __file__, "gantt.vue")
 
 
 class GanttMode(Enum):
@@ -82,7 +79,7 @@ def _calc_text_color(col: str):
     return "#000000" if (r * 0.299 + g * 0.587 + b * 0.114) > 186 else "#ffffff"
 
 
-class Gantt(Element):
+class Gantt(ui.element, component="gantt.vue"):
     def __init__(
         self,
         title: str,
@@ -93,7 +90,7 @@ class Gantt(Element):
         *,
         on_change: Optional[Callable] = None
     ) -> None:
-        super().__init__("gantt")
+        super().__init__()
         self._props["title"] = title
         self.on("change", on_change)
         self._get_data = get_data

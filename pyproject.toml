@@ -10,7 +10,7 @@ exclude = ["src/bupap/data/EDITABLE_TAG"]
 
 [tool.poetry.dependencies]
 python = "^3.11"
-nicegui = "^1.2.17"
+nicegui = {version="^1.3.6", extras=["plotly"]}
 sqlalchemy = "^2.0.16"
 bcrypt = "^4.0.1"
 loguru = "^0.7.0"

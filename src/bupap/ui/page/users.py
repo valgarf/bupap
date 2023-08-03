@@ -267,7 +267,7 @@ def create_users_page():
                         @component.Errors.wrap_error("Failed to navigate to task")
                         def handle_click(evt):
                             logger.info(evt)
-                            task_id = evt["args"]["data"]["task_id"]
+                            task_id = evt.args["data"]["task_id"]
                             component.Router.get().open(f"/task/{task_id}/Overview")
 
                         tbl.on("cellClicked", handle_click)

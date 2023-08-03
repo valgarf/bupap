@@ -6,21 +6,20 @@ from inspect import isawaitable
 from typing import Any, Awaitable, Callable, Optional
 
 from loguru import logger
-from nicegui.dependencies import register_component
-from nicegui.element import Element
+from nicegui import ui
 
 from .errors import Errors
 
-register_component("pick_date", __file__, "pick_date.vue")
+# register_component("pick_date", __file__, "pick_date.vue")
 
 
-class PickDate(Element):
+class PickDate(ui.element, component="pick_date.vue"):
     def __init__(
         self,
         initial: date | None = None,
         on_change: Callable[[date], None | Awaitable[None]] | None = None,
     ) -> None:
-        super().__init__("pick_date")
+        super().__init__()
         if initial is None:
             initial = date.today()
         self._props["initial"] = initial
@@ -29,9 +28,9 @@ class PickDate(Element):
         self.date = initial
 
     async def _changed(self, evt):
-        self.date = date.fromisoformat(evt["args"])
+        self.date = date.fromisoformat(evt.args)
         if self._on_change:
-            result = self._on_change(date.fromisoformat(evt["args"]))
+            result = self._on_change(date.fromisoformat(evt.args))
             if isawaitable(result):
                 await result
 

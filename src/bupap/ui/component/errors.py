@@ -6,17 +6,13 @@ from typing import Callable, Optional, Self
 
 from loguru import logger
 from nicegui import ui
-from nicegui.dependencies import register_component
-from nicegui.element import Element
 
 from bupap.ui.common import client_data
 
-register_component("errors", __file__, "errors.js")
 
-
-class Errors(Element):
+class Errors(ui.element, component="errors.js"):
     def __init__(self) -> None:
-        super().__init__("errors")
+        super().__init__()
         self.on("show_full_error", self.show_full_error)
         client_data()["errors"] = self
 
@@ -44,10 +40,10 @@ class Errors(Element):
         )
 
     def show_full_error(self, evt):
-        short_msg = evt["args"]["short_msg"]
-        exc_type = evt["args"]["exc_type"]
-        exc_msg = evt["args"]["exc_msg"]
-        traceback = evt["args"]["traceback"]
+        short_msg = evt.args["short_msg"]
+        exc_type = evt.args["exc_type"]
+        exc_msg = evt.args["exc_msg"]
+        traceback = evt.args["traceback"]
         with ui.dialog() as dialog, ui.card() as card:
             card.classes("flex-nowrap").style("max-width:80%!important; width:80%!important")
             with ui.row():
