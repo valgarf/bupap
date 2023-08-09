@@ -15,7 +15,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from bupap import db
 from bupap.ui import component
 from bupap.ui.common import format_date, format_timedelta, get_user
-from bupap.ui.component import RequestInfo, Router
+from bupap.ui.component import CPlotly, RequestInfo, Router
 from bupap.ui.crud.task import get_estimate
 
 
@@ -125,7 +125,7 @@ def create_tasks_page():
 
     def _task_page_overview(session: sa.orm.Session, task: db.Task):
         with ui.row().classes("w-full justify-center"):
-            with ui.column().classes("place-items-center gap-0 items-stretch grow"):
+            with ui.column().classes("place-items-center gap-0 items-stretch grow") as col:
                 # component.Avatar(shown_team).classes("h-40")
                 ui.label(task.name).classes("font-bold text-xl mt-5 self-center")
                 with ui.row().classes("m-2 self-center"):
@@ -161,7 +161,7 @@ def create_tasks_page():
                     yaxis_min = task.created_at
                     yaxis_max = max(y_high + y)
                     yaxis_size = yaxis_max - yaxis_min
-                    yaxis_max += yaxis_size * 0.05
+                    yaxis_max += yaxis_size * 0.2
                     yaxis_min -= yaxis_size * 0.05
                     fig = go.Figure()
                     fig.add_trace(
@@ -188,9 +188,11 @@ def create_tasks_page():
                         xaxis_range=[xaxis_min, xaxis_max],
                         yaxis_range=[yaxis_min, yaxis_max],
                         showlegend=False,
+                        hovermode="closest"
                     )
-                    ui.plotly(fig).classes("w-full h-40")
-
+                    # def ic_args(event):
+                        # ic(event)
+                    CPlotly(fig).classes("w-full h-40") # .on("data_click", ic_args)
                 # ui.label("@" + shown_team.name).classes("text-slate-500")
 
     def _task_page_activity(session: sa.orm.Session, task: db.Task):

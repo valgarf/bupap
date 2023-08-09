@@ -2,6 +2,7 @@ from nicegui import ui
 
 from .adduser import AddUser
 from .avatar import Avatar
+from .custom_plotly import CPlotly
 from .errors import Errors
 from .gantt import Gantt, GanttData, GanttEntryData, GanttEntryType, GanttMode, GanttRowData
 from .header import Header
