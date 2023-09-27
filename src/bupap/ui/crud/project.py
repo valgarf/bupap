@@ -25,6 +25,12 @@ def create_project(project, external_session=None):
         db_project = db.Project(
             name=project.name, description=project.description, color=project.color
         )
+        if project.parent is not None:
+            if isinstance(project.parent, db.Project):
+                db_project.parent = project.parent
+            else:
+                assert isinstance(project.parent, int)
+                db_project.parent_id = project.parent
         session.add(db_project)
         return return_obj_or_id(external_session, session, db_project)
 

@@ -127,6 +127,11 @@ class TestdataUsers:
 @dataclass
 class TestdataProjects:
     db_proj_tooling: Project
+    db_proj_tooling_debugger: Project
+    db_proj_tooling_metrics: Project
+    db_proj_tooling_build_tools: Project
+    db_proj_tooling_deployment: Project
+    db_proj_tooling_testing_tools: Project
     db_proj_showcase_y: Project
     db_proj_management: Project
     db_proj_x: Project
@@ -140,7 +145,7 @@ class TestdataProjects:
         return [self.db_proj_showcase_y, self.db_proj_management, self.db_proj_x]
 
     @property
-    def all(self):
+    def top_level(self):
         return [
             self.db_proj_tooling,
             self.db_proj_showcase_y,
@@ -157,7 +162,7 @@ class TestdataState:
     current: datetime
     possible_devs: dict[int, Task] = field(default_factory=dict)
 
-
+TOOL_SUBPROJECTS = ["debugger", "metrics", "build tools", "deployment", "testing tools"]
 def add_testdata(end: datetime = None):
     """
     Fills the database with testdata to be used in internal tests and demonstrations.
@@ -225,34 +230,19 @@ def add_testdata(end: datetime = None):
         assign_team_role(db_frontend.id, db_ateel.id, "Developer", external_session=session)
 
         # Projects
-        db_proj_tooling = create_project(
-            NewProject(
-                "Internal Tooling",
-                "Project for internal scripts and larger tooling needs.",
-                "#b0bec5",
-            ),
-            external_session=session,
-        )
-        db_proj_showcase_y = create_project(
-            NewProject(
-                "Showcase Y",
-                "Mockups for project X. Frontend only, will be built if a customer buys it.",
-                "#aed581",
-            ),
-            external_session=session,
-        )
-        db_proj_management = create_project(
-            NewProject(
-                "Management tasks",
-                "A place for direct tasks from management that don't fit anywhere else.",
-                "#4db6ac",
-            ),
-            external_session=session,
-        )
-        db_proj_x = create_project(
-            NewProject("Project X", "Our greatest hit.", "#ffb74d"),
-            external_session=session,
-        )
+
+        # fmt: off
+        db_proj_tooling = create_project(NewProject("Internal Tooling", "Project for internal scripts and larger tooling needs.", "#b0bec5"), external_session=session)
+        db_proj_tooling_debugger = create_project(NewProject("Internal Tooling - debugger", "Subproject of internal tooling", "#b0bec5", parent=db_proj_tooling), external_session=session)
+        db_proj_tooling_metrics = create_project(NewProject("Internal Tooling - metrics", "Subproject of internal tooling", "#b0bec5", parent=db_proj_tooling), external_session=session)
+        db_proj_tooling_build_tools = create_project(NewProject("Internal Tooling - build_tools", "Subproject of internal tooling", "#b0bec5", parent=db_proj_tooling), external_session=session)
+        db_proj_tooling_deployment = create_project(NewProject("Internal Tooling - deployment", "Subproject of internal tooling", "#b0bec5", parent=db_proj_tooling), external_session=session)
+        db_proj_tooling_testing_tools = create_project(NewProject("Internal Tooling - testing_tools", "Subproject of internal tooling", "#b0bec5", parent=db_proj_tooling), external_session=session)
+        
+        db_proj_showcase_y = create_project(NewProject("Showcase Y", "Mockups for project X. Frontend only, will be built if a customer buys it.", "#aed581"), external_session=session)
+        db_proj_management = create_project(NewProject("Management tasks", "A place for direct tasks from management that don't fit anywhere else.", "#4db6ac"), external_session=session)
+        db_proj_x = create_project(NewProject("Project X", "Our greatest hit.", "#ffb74d"), external_session=session)
+        # fmt: on
 
         session.flush()
 
@@ -294,6 +284,11 @@ def add_testdata(end: datetime = None):
             ),
             projects=TestdataProjects(
                 db_proj_tooling=db_proj_tooling,
+                db_proj_tooling_debugger=db_proj_tooling_debugger,
+                db_proj_tooling_metrics=db_proj_tooling_metrics,
+                db_proj_tooling_build_tools=db_proj_tooling_build_tools,
+                db_proj_tooling_deployment=db_proj_tooling_deployment,
+                db_proj_tooling_testing_tools=db_proj_tooling_testing_tools,
                 db_proj_showcase_y=db_proj_showcase_y,
                 db_proj_management=db_proj_management,
                 db_proj_x=db_proj_x,
@@ -346,7 +341,7 @@ def add_testdata(end: datetime = None):
         while state.current < end:
             if len(unplanned_tasks) < 10:
                 for i in range(10):
-                    db_task = generate_task_for_project(state, state.projects.all)
+                    db_task = generate_task_for_project(state, state.projects.top_level)
                     unplanned_tasks.append(db_task.id)
 
             invert_unplanned = {}
@@ -490,14 +485,18 @@ def generate_task_for_project(state: TestdataState, db_projects: list[Project]):
     users = state.users
     match (db_proj):
         case state.projects.db_proj_tooling:
-            tool = choice(["debugger", "metrics", "build tools", "deployment", "testing tools"])
+            subproj = choice([state.projects.db_proj_tooling_debugger,
+                             state.projects.db_proj_tooling_metrics,
+                             state.projects.db_proj_tooling_build_tools,
+                             state.projects.db_proj_tooling_deployment,
+                             state.projects.db_proj_tooling_testing_tools])
             adj = choice(["fancy", "crazy", "interesting", "necessary"])
             obj = choice(["feature", "improvement", "thing"])
             denom = choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
-            name = f"add {adj} new {obj} {denom} to {tool}"
+            name = f"add {adj} new {obj} {denom}"
             priority = choice([TaskPriority.LOW, TaskPriority.MEDIUM, TaskPriority.HIGH])
             task = NewTask(
-                db_proj.id,
+                subproj.id,
                 TaskType.FEATURE,
                 priority,
                 state.current,
