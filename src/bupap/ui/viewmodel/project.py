@@ -8,7 +8,7 @@ class NewProject:
     name: str = ""
     description: str = ""
     color: str = ""
-    parent: int | db.Project | None = None
+    parent_id: int | None = None
 
     def reset(self):
         self.name = ""

@@ -9,13 +9,14 @@ from .common import return_obj_or_id
 
 
 @overload
-def create_user(project: NewUser, external_session: None) -> int:
+def create_user(project: NewUser, external_session: db.Session) -> db.User:
     ...
 
 
 @overload
-def create_user(project: NewUser, external_session: db.Session) -> db.User:
+def create_user(project: NewUser, external_session: None) -> int:
     ...
+
 
 
 def create_user(user: NewUser, external_session: db.Session | None = None):

@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Iterator
 
 import sqlalchemy as sa
-import sqlalchemy.orm
+from sqlalchemy.orm import Session
 
 from bupap.config import settings
 
@@ -19,7 +19,7 @@ class _Database:
         self._sessionmaker = sa.orm.sessionmaker(self.engine)
 
     @contextmanager
-    def session(self) -> Iterator[sa.orm.Session]:
+    def session(self) -> Iterator[Session]:
         with self._sessionmaker() as session:
             try:
                 yield session
@@ -35,13 +35,13 @@ def get_database():
 
 
 @contextmanager
-def session() -> Iterator[sa.orm.Session]:
+def session() -> Iterator[Session]:
     with get_database().session() as session:
         yield session
 
 
 @contextmanager
-def use_or_open_session(session: sa.orm.Session | None) -> Iterator[sa.orm.Session]:
+def use_or_open_session(session: Session | None) -> Iterator[Session]:
     """
     Contextmanager to open a session if necessary. If given an existing session, it will simply
     yield it.

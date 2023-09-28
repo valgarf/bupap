@@ -5,12 +5,7 @@ import sqlalchemy as sa
 from bupap import db
 from bupap.ui.viewmodel.project import NewProject
 
-from .common import return_obj_or_id
-
-
-@overload
-def create_project(project: NewProject, external_session: None) -> int:
-    ...
+from .common import get_from_id, return_obj_or_id
 
 
 @overload
@@ -18,19 +13,22 @@ def create_project(project: NewProject, external_session: db.Session) -> db.Proj
     ...
 
 
+@overload
+def create_project(project: NewProject, external_session: None) -> int:
+    ...
+
+
+
 def create_project(project, external_session=None):
     if not project.name:
         raise RuntimeError("Incomplete data to create a project.")
     with db.use_or_open_session(external_session) as session:
+        db_parent = None
+        if project.parent_id is not None:
+            db_parent = get_from_id(session, db.Project, project.parent_id)
         db_project = db.Project(
-            name=project.name, description=project.description, color=project.color
+            name=project.name, description=project.description, color=project.color, parent = db_parent
         )
-        if project.parent is not None:
-            if isinstance(project.parent, db.Project):
-                db_project.parent = project.parent
-            else:
-                assert isinstance(project.parent, int)
-                db_project.parent_id = project.parent
         session.add(db_project)
         return return_obj_or_id(external_session, session, db_project)
 

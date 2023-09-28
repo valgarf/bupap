@@ -1,4 +1,5 @@
 import logging
+import os
 import secrets
 import subprocess
 import sys
@@ -90,6 +91,12 @@ def run():
         raise HTTPException(status_code=500, detail="Internal server error")
     
     page.create_all_pages()
+    path_pkg_root = Path(settings.pkg_root)
+    if settings.editable and Path.cwd() in path_pkg_root.parents:
+        # NOTE: uvicorn ALWAYS includes the current working directory in reload dirs, regardless
+        # of our configuration. We change the CWD to exclude the large .git folder that causes 
+        # problems for file watchers
+        os.chdir(path_pkg_root) 
     ui.run(
         port=settings.port,
         title="bupap",
