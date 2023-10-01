@@ -40,3 +40,12 @@ class Project(Base):
             todo.extend(el.children)
             result.extend(el.children)
         return result
+
+    @property
+    def parents(self):
+        result = []
+        current = self.parent
+        while current is not None:
+            result.append(current)
+            current = current.parent
+        return result[::-1]

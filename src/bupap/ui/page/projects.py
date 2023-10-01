@@ -50,6 +50,13 @@ def create_projects_page():
     def _project_page_overview(session: sa.orm.Session, project: db.Project):
         with ui.row().classes("w-full justify-center"):
             with ui.column().classes("place-items-center gap-0"):
+                if project.parent:
+                    with ui.element("q-breadcrumbs"):
+                        for p in project.parents:
+                            ui.element("q-breadcrumbs-el").props(f'label="{p.name}"').classes(
+                                "select-none cursor-pointer"
+                            ).on("click", partial(Router.get().open, f"/project/{p.id}/Overview"))
+                        ui.element("q-breadcrumbs-el").props(f'label="{project.name}"')
                 # component.Avatar(shown_team).classes("h-40")
                 ui.label(project.name).classes("font-bold text-xl mt-5")
                 # ui.label("@" + shown_team.name).classes("text-slate-500")
