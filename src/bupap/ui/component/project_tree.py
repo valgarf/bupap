@@ -26,21 +26,21 @@ def recursive_create_list(project_node: TreeNode[db.Project]):
             header.classes("p-0 m-0")
             # header.on("click", partial(Router.get().open, f"/project/{project.id}/Overview"))
             with header.add_slot("header"):
-                with ui.row().classes("p-4 pl-0 hover:bg-slate-200 flex-1").on(
+                with ui.row().classes("p-4 pl-0 hover:bg-slate-200 flex-1 cursor-pointer").on(
                     "click", partial(Router.get().open, f"/project/{project.id}/Overview")
                 ):
                     ui.element("div").classes("m-0 p-0")
                     # for some reason the label sometimes is displayed without text if it is the first element in the row
-                    ui.label(project.name).classes("text-lg font-bold")
+                    ui.label(project.name).classes("text-lg font-bold select-none")
             for idx, child in enumerate(project_node.children):
                 recursive_create_list(child)
     else:
-        with ui.row().classes(f"p-4 pl-[{inset_padding}px] hover:bg-slate-200").on(
+        with ui.row().classes(f"p-4 pl-[{inset_padding}px] hover:bg-slate-200 cursor-pointer").on(
             "click", partial(Router.get().open, f"/project/{project.id}/Overview")
         ):
             ui.element("div").classes("m-0 p-0")
             # for some reason the label sometimes is displayed without text if it is the first element in the row
-            ui.label(project.name).classes("text-lg font-bold")
+            ui.label(project.name).classes("text-lg font-bold select-none")
 
 
 def project_tree(projects: Iterable[db.Project], root: set[db.Project] | None = None):

@@ -53,7 +53,9 @@ def create_projects_page():
                 # component.Avatar(shown_team).classes("h-40")
                 ui.label(project.name).classes("font-bold text-xl mt-5")
                 # ui.label("@" + shown_team.name).classes("text-slate-500")
-        project_tree(project.recursive_children, root=set(project.children))
+        direct_children = project.children
+        if direct_children:
+            project_tree(project.recursive_children, root=direct_children)
 
     def _project_page_tasks(session: sa.orm.Session, project: db.Project):
         with ui.row().classes("p-4 overflow-x-auto grow flex-nowrap items-stretch"):
@@ -64,11 +66,11 @@ def create_projects_page():
                     with ui.element("q-scroll-area").classes("m-0 p-0 pr-2 max-w-[330] grow"):
                         with ui.column().classes("p-0 m-1 gap-2 items-stretch"):
                             for task in tasks:
-                                with ui.card().classes("hover:bg-slate-200").on(
+                                with ui.card().classes("hover:bg-slate-200 cursor-pointer").on(
                                     "click", partial(Router.get().open, f"/task/{task.id}/Overview")
                                 ):
-                                    ui.label(task.name).classes("text-base font-bold")
+                                    ui.label(task.name).classes("text-base font-bold select-none")
                                     with ui.row():
                                         ui.badge(task.task_priority.name, color="green").classes(
-                                            "p-1 m-1"
+                                            "p-1 m-1 select-none"
                                         )
