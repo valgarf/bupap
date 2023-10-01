@@ -18,7 +18,6 @@ def create_project(project: NewProject, external_session: None) -> int:
     ...
 
 
-
 def create_project(project, external_session=None):
     if not project.name:
         raise RuntimeError("Incomplete data to create a project.")
@@ -27,7 +26,10 @@ def create_project(project, external_session=None):
         if project.parent_id is not None:
             db_parent = get_from_id(session, db.Project, project.parent_id)
         db_project = db.Project(
-            name=project.name, description=project.description, color=project.color, parent = db_parent
+            name=project.name,
+            description=project.description,
+            color=project.color,
+            parent=db_parent,
         )
         session.add(db_project)
         return return_obj_or_id(external_session, session, db_project)

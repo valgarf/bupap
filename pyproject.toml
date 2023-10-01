@@ -46,7 +46,7 @@ line_length = 100
 float_to_top = true
 src_paths = ["src", "test", "alembic"]
 sections = ['FUTURE', 'STDLIB', 'THIRDPARTY', 'FIRSTPARTY', 'LOCALFOLDER']
-import_headings = {FUTURE = "future", STDLIB = "stl", THIRDPARTY = "third-party", FIRSTPARTY = "first-party", LOCALFOLDER = "local"}
+import_headings = {FUTURE="future", STDLIB="stl", THIRDPARTY="third-party", FIRSTPARTY="first-party", LOCALFOLDER="local"}
 
 [tool.black]
 line-length = 100

@@ -162,13 +162,16 @@ class TestdataState:
     current: datetime
     possible_devs: dict[int, Task] = field(default_factory=dict)
 
+
 TOOL_SUBPROJECTS = ["debugger", "metrics", "build tools", "deployment", "testing tools"]
+
+
 def add_testdata(end: datetime = None):
     """
     Fills the database with testdata to be used in internal tests and demonstrations.
     """
 
-    with db_session() as session: 
+    with db_session() as session:
         if len(session.scalars(sa.select(User)).all()) != 1 or any(
             session.scalars(sa.select(cls)).first() is not None for cls in [Team, Project]
         ):
@@ -233,15 +236,22 @@ def add_testdata(end: datetime = None):
 
         # fmt: off
         db_proj_tooling = create_project(NewProject("Internal Tooling", "Project for internal scripts and larger tooling needs.", "#b0bec5"), external_session=session)
+        db_proj_showcase_y = create_project(NewProject("Showcase Y", "Mockups for project X. Frontend only, will be built if a customer buys it.", "#aed581"), external_session=session)
+        db_proj_management = create_project(NewProject("Management tasks", "A place for direct tasks from management that don't fit anywhere else.", "#4db6ac"), external_session=session)
+        db_proj_x = create_project(NewProject("Project X", "Our greatest hit.", "#ffb74d"), external_session=session)
+
+        session.flush()
         db_proj_tooling_debugger = create_project(NewProject("Internal Tooling - debugger", "Subproject of internal tooling", "#b0bec5", parent_id=db_proj_tooling.id), external_session=session)
         db_proj_tooling_metrics = create_project(NewProject("Internal Tooling - metrics", "Subproject of internal tooling", "#b0bec5", parent_id=db_proj_tooling.id), external_session=session)
         db_proj_tooling_build_tools = create_project(NewProject("Internal Tooling - build_tools", "Subproject of internal tooling", "#b0bec5", parent_id=db_proj_tooling.id), external_session=session)
         db_proj_tooling_deployment = create_project(NewProject("Internal Tooling - deployment", "Subproject of internal tooling", "#b0bec5", parent_id=db_proj_tooling.id), external_session=session)
         db_proj_tooling_testing_tools = create_project(NewProject("Internal Tooling - testing_tools", "Subproject of internal tooling", "#b0bec5", parent_id=db_proj_tooling.id), external_session=session)
-        
-        db_proj_showcase_y = create_project(NewProject("Showcase Y", "Mockups for project X. Frontend only, will be built if a customer buys it.", "#aed581"), external_session=session)
-        db_proj_management = create_project(NewProject("Management tasks", "A place for direct tasks from management that don't fit anywhere else.", "#4db6ac"), external_session=session)
-        db_proj_x = create_project(NewProject("Project X", "Our greatest hit.", "#ffb74d"), external_session=session)
+
+        session.flush()
+        db_proj_tooling_deployment_ci =  create_project(NewProject("Internal Tooling - deployment - ci", "Subproject of internal tooling - depoloyment", "#b0bec5", parent_id=db_proj_tooling_deployment.id), external_session=session)
+
+        session.flush()
+        db_proj_tooling_deployment_ci_secrets =  create_project(NewProject("Internal Tooling - deployment - ci - secrets", "Subproject of internal tooling - depoloyment - ci", "#b0bec5", parent_id=db_proj_tooling_deployment_ci.id), external_session=session)
         # fmt: on
 
         session.flush()
@@ -430,7 +440,9 @@ def add_testdata(end: datetime = None):
                 for evt in events:
                     if evt["type"] != "meeting":
                         evt["at"] += next_shift
-                unassigned_devs.extend([evt["person"] for evt in events if evt["type"] == "finished_planning"])
+                unassigned_devs.extend(
+                    [evt["person"] for evt in events if evt["type"] == "finished_planning"]
+                )
                 events = [evt for evt in events if evt["type"] != "finished_planning"]
                 state.current += next_shift
                 if state.current >= end:
@@ -448,7 +460,9 @@ def add_testdata(end: datetime = None):
                 for evt in events:
                     if evt["type"] != "shift_end":
                         evt["at"] += meeting_duration
-                unassigned_devs.extend([evt["person"] for evt in events if evt["type"] == "finished_planning"])
+                unassigned_devs.extend(
+                    [evt["person"] for evt in events if evt["type"] == "finished_planning"]
+                )
                 events = [evt for evt in events if evt["type"] != "finished_planning"]
                 state.current += meeting_duration
                 if state.current >= end:
@@ -485,11 +499,15 @@ def generate_task_for_project(state: TestdataState, db_projects: list[Project]):
     users = state.users
     match (db_proj):
         case state.projects.db_proj_tooling:
-            subproj = choice([state.projects.db_proj_tooling_debugger,
-                             state.projects.db_proj_tooling_metrics,
-                             state.projects.db_proj_tooling_build_tools,
-                             state.projects.db_proj_tooling_deployment,
-                             state.projects.db_proj_tooling_testing_tools])
+            subproj = choice(
+                [
+                    state.projects.db_proj_tooling_debugger,
+                    state.projects.db_proj_tooling_metrics,
+                    state.projects.db_proj_tooling_build_tools,
+                    state.projects.db_proj_tooling_deployment,
+                    state.projects.db_proj_tooling_testing_tools,
+                ]
+            )
             adj = choice(["fancy", "crazy", "interesting", "necessary"])
             obj = choice(["feature", "improvement", "thing"])
             denom = choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -561,7 +579,9 @@ def generate_task_for_project(state: TestdataState, db_projects: list[Project]):
     db_task = create_task(task, external_session=state.session)
     if random() > 0.8:
         for i in range(3):
-            subtask = NewTask(db_proj.id, TaskType.FEATURE, priority, state.current, f"Subtask {i}", f"step {i}")
+            subtask = NewTask(
+                db_proj.id, TaskType.FEATURE, priority, state.current, f"Subtask {i}", f"step {i}"
+            )
             create_task(subtask, external_session=state.session)
     state.session.flush()
     users = []

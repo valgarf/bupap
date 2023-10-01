@@ -12,8 +12,77 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from bupap import db
 from bupap.ui import component
-from bupap.ui.common import get_user
+from bupap.ui.common import Tree, TreeNode, get_user
 from bupap.ui.component import RequestInfo, Router
+
+# def recursive_create_list(project_node: TreeNode[db.Project]):
+#     project = project_node.value
+#     children_pane: ui.element = None
+#     icon: ui.icon = None
+
+#     def toggle_children(*_):
+#         assert children_pane is not None
+#         assert icon is not None
+#         visible = not children_pane.visible
+#         children_pane.set_visibility(visible)
+#         if visible:
+#             icon.props["name"] = "arrow_drop_down"
+#         else:
+#             icon.props["name"] = "arrow_right"
+
+#     with ui.row().classes("p-0 items-center gap-0"):
+#         if project_node.children:
+#             icon = (
+#                 ui.icon("arrow_right", color="primary", size="xl")
+#                 .classes("m-0 p-0")
+#                 .on("click", toggle_children)
+#             )
+#         else:
+#             ui.element("div").classes("h-[48px] w-[48px]")
+#         with ui.row().classes("p-4 pl-0 hover:bg-slate-200 flex-1").on(
+#             "click", partial(Router.get().open, f"/project/{project.id}/Overview")
+#         ):
+#             ui.element("div").classes("m-0 p-0")
+#             # for some reason the label sometimes is displayed without text if it is the first element in the row
+#             ui.label(project.name).classes("text-lg font-bold")
+#     component.separator_line()
+#     if project_node.children:
+#         with ui.element("div").classes("p-0 pl-8 gap-0") as children_pane:
+#             for child in project_node.children:
+#                 recursive_create_list(child)
+
+
+def recursive_create_list(project_node: TreeNode[db.Project]):
+    project = project_node.value
+    children_pane: ui.element = None
+    icon: ui.icon = None
+
+    # NOTE: 16: left padding for depth 0; 56: size of arrow icon; 56: inset per level
+    inset_padding = 16 + 56 + project_node.depth * 56
+    component.separator_line().classes(f"ml-[{inset_padding-56-16}px]")
+    if project_node.children:
+        with ui.expansion(project.name) as header:
+            header.props(
+                f"expand-icon-toggle dense-toggle switch-toggle-side header-inset-level={project_node.depth}"
+            )
+            header.classes("p-0 m-0")
+            # header.on("click", partial(Router.get().open, f"/project/{project.id}/Overview"))
+            with header.add_slot("header"):
+                with ui.row().classes("p-4 pl-0 hover:bg-slate-200 flex-1").on(
+                    "click", partial(Router.get().open, f"/project/{project.id}/Overview")
+                ):
+                    ui.element("div").classes("m-0 p-0")
+                    # for some reason the label sometimes is displayed without text if it is the first element in the row
+                    ui.label(project.name).classes("text-lg font-bold")
+            for idx, child in enumerate(project_node.children):
+                recursive_create_list(child)
+    else:
+        with ui.row().classes(f"p-4 pl-[{inset_padding}px] hover:bg-slate-200").on(
+            "click", partial(Router.get().open, f"/project/{project.id}/Overview")
+        ):
+            ui.element("div").classes("m-0 p-0")
+            # for some reason the label sometimes is displayed without text if it is the first element in the row
+            ui.label(project.name).classes("text-lg font-bold")
 
 
 def create_projects_page():
@@ -31,15 +100,20 @@ def create_projects_page():
             ).props("icon=add").tooltip("add project").props("outline").classes(
                 "text-black object-center m-auto"
             )
+
+        project_tree = Tree(session.scalars(sa.select(db.Project).order_by(db.Project.name)))
+        for root_project in project_tree.children:
+            recursive_create_list(root_project)
         component.separator_line()
-        for project in session.scalars(sa.select(db.Project).order_by(db.Project.name)):
-            with ui.row().classes("p-4 hover:bg-slate-200").on(
-                "click", partial(Router.get().open, f"/project/{project.id}/Overview")
-            ):
-                ui.element("div").classes("m-0 p-0")
-                # for some reason the label sometimes is displayed without text if it is the first element in the row
-                ui.label(project.name).classes("text-lg font-bold")
-            component.separator_line()
+        # for project_node in project_tree.depths_first():
+        #     project = project_node.value
+        #     with ui.row().classes("p-4 hover:bg-slate-200").on(
+        #         "click", partial(Router.get().open, f"/project/{project.id}/Overview")
+        #     ):
+        #         ui.element("div").classes("m-0 p-0")
+        #         # for some reason the label sometimes is displayed without text if it is the first element in the row
+        #         ui.label(project.name).classes("text-lg font-bold")
+        #     component.separator_line()
 
     @Router.add("/project/{project_id:int}/{tab}")
     def project_page(info: RequestInfo, session: sa.orm.Session):

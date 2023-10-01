@@ -19,6 +19,7 @@ def create_index_page():
     @ui.page("/{_:path}")
     def index_page(request: Request, client: Client):
         globals.index_client._custom_data = {}
+        ui.add_head_html(custom_style)
         user = get_user(request)
         errors = Errors()
         router = Router(user.id)
@@ -39,3 +40,16 @@ def create_index_page():
             with ui.card():
                 # ui.label(f"Hello {user.name}!")
                 ui.label(f"Hello {user.name}")
+
+
+custom_style = """
+<style>
+.q-expansion-item > div > .q-item {
+  padding: 0;
+}
+.q-item >.cursor-pointer {
+  padding-right: 0;
+  align-items:center;
+}
+</style>
+"""
