@@ -7,11 +7,9 @@ from .errors import Errors
 from .gantt import Gantt, GanttData, GanttEntryData, GanttEntryType, GanttMode, GanttRowData
 from .header import Header
 from .pick_date import PickDate
+from .project_tree import project_tree
 from .router import RequestInfo, Router
+from .separator_line import separator_line
 from .user_card import user_card
 
 # from .avatar import Avatar
-
-
-def separator_line():
-    return ui.element("hr").classes("h-px my-1 bg-gray-200 border-0 dark:bg-gray-700")

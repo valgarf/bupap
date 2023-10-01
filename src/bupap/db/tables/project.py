@@ -30,3 +30,13 @@ class Project(Base):
     teams: Mapped[List[Team]] = relationship(
         secondary=assoc_project_team, back_populates="projects"
     )
+
+    @property
+    def recursive_children(self):
+        todo = list(self.children)
+        result = list(self.children)
+        while todo:
+            el = todo.pop(0)
+            todo.extend(el.children)
+            result.extend(el.children)
+        return result

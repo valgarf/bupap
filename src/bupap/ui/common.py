@@ -99,6 +99,7 @@ class Tree(Generic[T_co]):
     def __init__(
         self,
         elements: Iterable[T_co],
+        root_elements: set[Hashable] | None = None,
         parent_func: Callable[[T_co], T_co | None] = lambda value: value.parent,
         id_func: Callable[[T_co], Hashable] = lambda value: value,
     ) -> Tree[T_co]:
@@ -115,7 +116,9 @@ class Tree(Generic[T_co]):
                 if element_id in value_to_node:
                     raise RuntimeError("Cannot construct tree. Duplicate ids")
                 parent = parent_func(element)
-                if parent is None:
+                if (root_elements is None and parent is None) or (
+                    root_elements is not None and element in root_elements
+                ):
                     node = TreeNode(self, element, 0)
                     value_to_node[element_id] = node
                     roots.append(node)

@@ -49,6 +49,8 @@ custom_style = """
 }
 .q-item >.cursor-pointer {
   padding-right: 0;
+  width: 25px;
+  min-width: 25px;
   align-items:center;
 }
 </style>
