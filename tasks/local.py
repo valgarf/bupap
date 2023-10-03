@@ -10,7 +10,14 @@ def install(ctx):
     with ctx.cd(PROJECT_ROOT):
         ctx.run("poetry install --with dev")
 
+
 @task
 def build(ctx):
     with ctx.cd(PROJECT_ROOT):
         ctx.run("poetry build")
+
+
+# @task
+# def interfaces(ctx):
+#     with ctx.cd(PROJECT_ROOT):
+#         ctx.run

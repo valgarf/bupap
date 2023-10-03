@@ -5,44 +5,45 @@ from datetime import date, datetime, time, timedelta, timezone
 from enum import Enum, auto
 from functools import lru_cache
 from inspect import isawaitable
-from typing import Any, Awaitable, Callable, Optional
+from typing import Any, Awaitable, Callable, Dict, List, Optional
 
 from loguru import logger
 from nicegui import ui
+from py_ts_interfaces import Interface
 
 from .errors import Errors
 
 
 @dataclass
-class KanbanTag:
+class KanbanTag(Interface):
     text: str
     color: str
 
 
 @dataclass
-class KanbanCard:
+class KanbanCard(Interface):
     id: str
     title: str
-    tags: list[KanbanTag]
+    tags: List[KanbanTag]
     detached: bool
     link: bool
-    children_order: list[str] = field(default_factory=list)
-    lane_id: str | None = None
-    parent_id: str | None = None
+    children_order: List[str] = field(default_factory=list)
+    lane_id: Optional[str] = None
+    parent_id: Optional[str] = None
 
 
 @dataclass
-class KanbanLane:
+class KanbanLane(Interface):
     id: str
     title: str
-    card_order: list[str] = field(default_factory=list)
+    card_order: List[str] = field(default_factory=list)
 
 
 @dataclass
-class KanbanData:
-    lanes: dict[str, KanbanLane] = field(default_factory=dict)
-    cards: dict[str, KanbanCard] = field(default_factory=dict)
-    lane_order: list[str] = field(default_factory=list)
+class KanbanData(Interface):
+    lanes: Dict[str, KanbanLane] = field(default_factory=dict)
+    cards: Dict[str, KanbanCard] = field(default_factory=dict)
+    lane_order: List[str] = field(default_factory=list)
 
     def lane_for_card(self, card: KanbanCard) -> KanbanLane | None:
         for l in self.lanes:
