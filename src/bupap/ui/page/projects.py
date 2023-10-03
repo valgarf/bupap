@@ -13,7 +13,16 @@ from starlette.middleware.sessions import SessionMiddleware
 from bupap import db
 from bupap.ui import component
 from bupap.ui.common import Tree, TreeNode, get_user
-from bupap.ui.component import RequestInfo, Router, project_tree
+from bupap.ui.component import (
+    Kanban,
+    KanbanCard,
+    KanbanData,
+    KanbanLane,
+    KanbanTag,
+    RequestInfo,
+    Router,
+    project_tree,
+)
 
 
 def create_projects_page():
@@ -65,19 +74,43 @@ def create_projects_page():
             project_tree(project.recursive_children, root=direct_children)
 
     def _project_page_tasks(session: sa.orm.Session, project: db.Project):
-        with ui.row().classes("p-4 overflow-x-auto grow flex-nowrap items-stretch"):
-            for state in db.TaskState:
-                tasks = [t for t in project.tasks if t.task_state == state]
-                with ui.card().classes("min-w-[350pt] items-stretch"):
-                    ui.label(state.name).classes("font-bold text-xl mt-5")
-                    with ui.element("q-scroll-area").classes("m-0 p-0 pr-2 max-w-[330] grow"):
-                        with ui.column().classes("p-0 m-1 gap-2 items-stretch"):
-                            for task in tasks:
-                                with ui.card().classes("hover:bg-slate-200 cursor-pointer").on(
-                                    "click", partial(Router.get().open, f"/task/{task.id}/Overview")
-                                ):
-                                    ui.label(task.name).classes("text-base font-bold select-none")
-                                    with ui.row():
-                                        ui.badge(task.task_priority.name, color="green").classes(
-                                            "p-1 m-1 select-none"
-                                        )
+        pass
+        data = KanbanData()
+        for state in db.TaskState:
+            lane = KanbanLane(state.name, state.name)
+            data.lanes[lane.id] = lane
+            data.lane_order.append(lane.id)
+            tasks = [t for t in project.tasks if t.task_state == state]
+            for t in tasks:
+                card = KanbanCard(
+                    title=t.name,
+                    id=t.id,
+                    lane_id=lane.id,
+                    parent_id=t.parent_id,
+                    tags=[KanbanTag(t.task_priority.name, "green")],
+                    detached=False,
+                    link=True,
+                )
+                lane.card_order.append(card.id)
+                data.cards[card.id] = card
+        for card in data.cards.values():
+            if card.parent_id is not None:
+                data.cards[card.parent_id].children_order.append(card.id)
+        kanban = Kanban(data=data)
+
+        # with ui.row().classes("p-4 overflow-x-auto grow flex-nowrap items-stretch"):
+        #     for state in db.TaskState:
+        #         tasks = [t for t in project.tasks if t.task_state == state]
+        #         with ui.card().classes("min-w-[350pt] items-stretch"):
+        #             ui.label(state.name).classes("font-bold text-xl mt-5")
+        #             with ui.element("q-scroll-area").classes("m-0 p-0 pr-2 max-w-[330] grow"):
+        #                 with ui.column().classes("p-0 m-1 gap-2 items-stretch"):
+        #                     for task in tasks:
+        #                         with ui.card().classes("hover:bg-slate-200 cursor-pointer").on(
+        #                             "click", partial(Router.get().open, f"/task/{task.id}/Overview")
+        #                         ):
+        #                             ui.label(task.name).classes("text-base font-bold select-none")
+        #                             with ui.row():
+        #                                 ui.badge(task.task_priority.name, color="green").classes(
+        #                                     "p-1 m-1 select-none"
+        #                                 )

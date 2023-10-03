@@ -578,9 +578,16 @@ def generate_task_for_project(state: TestdataState, db_projects: list[Project]):
             )
     db_task = create_task(task, external_session=state.session)
     if random() > 0.8:
+        state.session.flush()
         for i in range(3):
             subtask = NewTask(
-                db_proj.id, TaskType.FEATURE, priority, state.current, f"Subtask {i}", f"step {i}"
+                db_proj.id,
+                TaskType.FEATURE,
+                priority,
+                state.current,
+                f"Subtask {i}",
+                f"step {i}",
+                parent_id=db_task.id,
             )
             create_task(subtask, external_session=state.session)
     state.session.flush()

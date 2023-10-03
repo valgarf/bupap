@@ -33,7 +33,7 @@ def create_task(task: NewTask, external_session: db.Session | None = None):
         db_project = get_from_id(session, db.Project, task.project_id)
         db_parent = None
         if task.parent_id is not None:
-            db_parent = get_from_id(session, db.Project, task.parent_id)
+            db_parent = get_from_id(session, db.Task, task.parent_id)
         db_task = db.Task(
             name=task.name,
             description=task.description,
@@ -315,7 +315,9 @@ class _UserState:
 
 
 def _calculate_end_time(
-    start: datetime, schedule_iterator: peekable, duration: timedelta,
+    start: datetime,
+    schedule_iterator: peekable,
+    duration: timedelta,
 ) -> datetime:
     try:
         while schedule_iterator.peek()[1] < start:
@@ -332,7 +334,8 @@ def _calculate_end_time(
 
 
 def _add_task_next(
-    user_state: _UserState, db_task: db.Task,
+    user_state: _UserState,
+    db_task: db.Task,
 ):
     # TODO: apply correction factor
     count_prev = user_state.prev_count
@@ -421,7 +424,9 @@ def run_auto_scheduling(now: datetime | None, external_session: db.Session | Non
         while db_tasks_to_schedule:
             user_state = min(user_states.values(), key=lambda us: us.last_end, default=None)
             if not user_state:
-                logger.warning(f"Failed to schedule tasks: {[t.name for t in db_tasks_to_schedule]}")
+                logger.warning(
+                    f"Failed to schedule tasks: {[t.name for t in db_tasks_to_schedule]}"
+                )
                 break
             db_estimates = [
                 e
