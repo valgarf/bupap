@@ -34,6 +34,10 @@ def create_task(task: NewTask, external_session: db.Session | None = None):
         db_parent = None
         if task.parent_id is not None:
             db_parent = get_from_id(session, db.Task, task.parent_id)
+            if db_parent.project != db_project:
+                raise RuntimeError(
+                    f"Cannot create subtask in project {db_project.name} for parent task {db_parent.id} from project {db_parent.project.name}"
+                )
         db_task = db.Task(
             name=task.name,
             description=task.description,

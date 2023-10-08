@@ -89,15 +89,25 @@ def create_projects_page():
                     id=t.id,
                     lane_id=lane.id,
                     parent_id=t.parent_id,
-                    tags=[KanbanTag(t.task_priority.name, "green")],
+                    tags=[
+                        KanbanTag(
+                            t.task_priority.text,
+                            t.task_priority.default_color,
+                            t.task_priority.default_text_color,
+                        )
+                    ],
                     detached=False,
                     link=True,
                 )
                 lane.card_order.append(card.id)
                 data.cards[card.id] = card
-        for card in data.cards.values():
+        for card in list(data.cards.values()):
             if card.parent_id is not None:
-                data.cards[card.parent_id].children_order.append(card.id)
+                if not card.parent_id in data.cards:
+                    print(f"Unkown card id {card.parent_id}")
+                    del data.cards[card.id]
+                else:
+                    data.cards[card.parent_id].children_order.append(card.id)
         kanban = Kanban(data=data)
 
         # with ui.row().classes("p-4 overflow-x-auto grow flex-nowrap items-stretch"):

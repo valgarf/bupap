@@ -581,7 +581,7 @@ def generate_task_for_project(state: TestdataState, db_projects: list[Project]):
         state.session.flush()
         for i in range(3):
             subtask = NewTask(
-                db_proj.id,
+                task.project_id,
                 TaskType.FEATURE,
                 priority,
                 state.current,

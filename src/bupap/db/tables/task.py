@@ -41,6 +41,44 @@ class TaskPriority(Enum):
     LOW = auto()
     VERY_LOW = auto()
 
+    @property
+    def default_color(self):  # TODO: make configurable
+        match (self):
+            case TaskPriority.VERY_HIGH:
+                result = "red-11"
+            case TaskPriority.HIGH:
+                result = "deep-purple-11"
+            case TaskPriority.MEDIUM:
+                result = "green-11"
+            case TaskPriority.LOW:
+                result = "teal-11"
+            case TaskPriority.VERY_LOW:
+                result = "blue-11"
+            case _:
+                assert False
+        return result
+
+    @property
+    def text(self):
+        return self.name.replace("_", " ")
+
+    @property
+    def default_text_color(self):
+        match (self):
+            case TaskPriority.VERY_HIGH:
+                result = "white"
+            case TaskPriority.HIGH:
+                result = "white"
+            case TaskPriority.MEDIUM:
+                result = "black"
+            case TaskPriority.LOW:
+                result = "black"
+            case TaskPriority.VERY_LOW:
+                result = "black"
+            case _:
+                assert False
+        return result
+
 
 class Task(Base):
     name: Mapped[str_50]

@@ -11,6 +11,7 @@ from py_ts_interfaces import Interface
 class KanbanTag(Interface):
     text: str
     color: str
+    text_color: str
 
 
 @dataclass
