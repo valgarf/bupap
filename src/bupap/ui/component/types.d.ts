@@ -6,7 +6,7 @@ interface KanbanTag {
     color: string;
 }
 
-interface KanbanCard {
+interface KanbanCardData {
     id: string;
     title: string;
     tags: Array<KanbanTag>;

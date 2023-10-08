@@ -15,7 +15,7 @@ from bupap.ui import component
 from bupap.ui.common import Tree, TreeNode, get_user
 from bupap.ui.component import (
     Kanban,
-    KanbanCard,
+    KanbanCardData,
     KanbanData,
     KanbanLane,
     KanbanTag,
@@ -23,6 +23,8 @@ from bupap.ui.component import (
     Router,
     project_tree,
 )
+
+# from bupap.ui.component.kanban_card import KanbanCard
 
 
 def create_projects_page():
@@ -82,7 +84,7 @@ def create_projects_page():
             data.lane_order.append(lane.id)
             tasks = [t for t in project.tasks if t.task_state == state]
             for t in tasks:
-                card = KanbanCard(
+                card = KanbanCardData(
                     title=t.name,
                     id=t.id,
                     lane_id=lane.id,

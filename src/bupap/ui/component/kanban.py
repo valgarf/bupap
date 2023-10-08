@@ -12,24 +12,7 @@ from nicegui import ui
 from py_ts_interfaces import Interface
 
 from .errors import Errors
-
-
-@dataclass
-class KanbanTag(Interface):
-    text: str
-    color: str
-
-
-@dataclass
-class KanbanCard(Interface):
-    id: str
-    title: str
-    tags: List[KanbanTag]
-    detached: bool
-    link: bool
-    children_order: List[str] = field(default_factory=list)
-    lane_id: Optional[str] = None
-    parent_id: Optional[str] = None
+from .kanban_card import KanbanCard, KanbanCardData, KanbanTag
 
 
 @dataclass
@@ -42,10 +25,10 @@ class KanbanLane(Interface):
 @dataclass
 class KanbanData(Interface):
     lanes: Dict[str, KanbanLane] = field(default_factory=dict)
-    cards: Dict[str, KanbanCard] = field(default_factory=dict)
+    cards: Dict[str, KanbanCardData] = field(default_factory=dict)
     lane_order: List[str] = field(default_factory=list)
 
-    def lane_for_card(self, card: KanbanCard) -> KanbanLane | None:
+    def lane_for_card(self, card: KanbanCardData) -> KanbanLane | None:
         for l in self.lanes:
             if l.id == card.lane_id:
                 return l
@@ -56,9 +39,9 @@ class Kanban(ui.element, component="kanban.vue"):
     def __init__(
         self,
         data: KanbanData,
-        on_card_change: Callable[[KanbanCard | None, KanbanCard], None | Awaitable[None]]
+        on_card_change: Callable[[KanbanCardData | None, KanbanCardData], None | Awaitable[None]]
         | None = None,
-        on_open_link: Callable[[KanbanCard], None | Awaitable[None]] | None = None,
+        on_open_link: Callable[[KanbanCardData], None | Awaitable[None]] | None = None,
     ) -> None:
         super().__init__()
         self._props["initial_data"] = data
