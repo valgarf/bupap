@@ -13,7 +13,7 @@ from bupap.ui.viewmodel.work import (
     WorkPeriodEnd,
 )
 
-from .common import get_from_id, return_obj_or_id
+from .common import get_from_id, return_obj_or_id, set_task_state
 
 
 def start_work_period(
@@ -28,7 +28,7 @@ def start_work_period(
             db_work_period = db.WorkPeriodTask(task=db_task)
             db_prev_work_period = db_user.active_work_period
             db_user.interrupted_task = None
-            db_task.task_state = db.TaskState.IN_PROGRESS
+            set_task_state(db_task, db.TaskState.IN_PROGRESS)
         elif isinstance(work, TimesinkStart):
             db_timesink = get_from_id(session, db.Timesink, work.timesink_id)
             db_work_period = db.WorkPeriodTimesink(timesink=db_timesink)

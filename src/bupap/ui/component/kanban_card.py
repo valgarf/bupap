@@ -21,6 +21,7 @@ class KanbanCardData(Interface):
     tags: List[KanbanTag]
     detached: bool
     link: bool
+    depth: int
     children_order: List[str] = field(default_factory=list)
     lane_id: Optional[str] = None
     parent_id: Optional[str] = None

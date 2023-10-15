@@ -2,7 +2,7 @@ import math
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from itertools import tee
-from typing import overload
+from typing import Callable, overload
 
 import sqlalchemy as sa
 from loguru import logger
@@ -12,7 +12,7 @@ from bupap import db
 from bupap.ui.viewmodel.task import NewEstimate, NewTask, TaskDone
 from bupap.ui.viewmodel.work import WorkPeriodEnd
 
-from .common import get_from_id, return_obj_or_id
+from .common import get_from_id, return_obj_or_id, set_task_state
 from .work import end_work_period
 
 
@@ -96,7 +96,14 @@ def estimate_task(estimate: NewEstimate, external_session: db.Session | None = N
 
         session.add(db_estimate)
         if db_task.task_state == db.TaskState.REQUEST:
-            db_task.task_state = db.TaskState.PLANNING
+            set_task_state(db_task, db.TaskState.PLANNING)
+
+
+def _recursive_attached(db_task, cb: Callable[[db.Task], None]):
+    cb(db_task)
+    for db_child in db_task.children:
+        if db_child.attached:
+            _recursive_attached(db_child, cb)
 
 
 def task_done(task: TaskDone, external_session: db.Session | None = None):
@@ -109,9 +116,12 @@ def task_done(task: TaskDone, external_session: db.Session | None = None):
                 WorkPeriodEnd(db_open_work_period.id, task.finished_at), external_session=session
             )
 
-        db_task.task_state = db.TaskState.DONE
-        db_task.finished_at = task.finished_at
-        # TODO: check if parent task is done
+        set_task_state(db_task, db.TaskState.DONE)
+
+        def set_finished(t):
+            t.finished_at = task.finished_at
+
+        _recursive_attached(db_task, set_finished)
 
 
 @overload
@@ -354,7 +364,7 @@ def _add_task_next(
         start_optimistic = user_state.now
         start_pessimistic = user_state.now
     db_task.scheduled_assignee = user_state.db_user
-    db_task.task_state = db.TaskState.SCHEDULED
+    set_task_state(db_task, db.TaskState.SCHEDULED)
     # TODO: apply work schedule for realistic timeline!
     db_estimate = get_estimate(user_state.db_user, db_task)
     end_average = _calculate_end_time(

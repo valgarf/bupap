@@ -89,6 +89,7 @@ def create_projects_page():
                     id=t.id,
                     lane_id=lane.id,
                     parent_id=t.parent_id,
+                    depth=0,
                     tags=[
                         KanbanTag(
                             t.task_priority.text,
@@ -96,7 +97,7 @@ def create_projects_page():
                             t.task_priority.default_text_color,
                         )
                     ],
-                    detached=False,
+                    detached=not t.attached,
                     link=True,
                 )
                 lane.card_order.append(card.id)
@@ -108,6 +109,17 @@ def create_projects_page():
                     del data.cards[card.id]
                 else:
                     data.cards[card.parent_id].children_order.append(card.id)
+
+        def _set_depth_rec(card, value: int = 0):
+            card.depth = value
+            for child_id in card.children_order:
+                _set_depth_rec(data.cards[child_id], value + 1)
+
+        for card in data.cards.values():
+            if card.parent_id != None:
+                continue
+            _set_depth_rec(card)
+
         kanban = Kanban(data=data)
 
         # with ui.row().classes("p-4 overflow-x-auto grow flex-nowrap items-stretch"):

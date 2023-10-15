@@ -90,6 +90,7 @@ class Task(Base):
     task_state: Mapped[TaskState]
     task_type: Mapped[TaskType]
     task_priority: Mapped[TaskPriority]
+    attached: Mapped[bool] = mapped_column(default=True)
     created_at: Mapped[datetime]
     finished_at: Mapped[datetime | None]
 

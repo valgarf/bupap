@@ -15,6 +15,7 @@ interface KanbanCardData {
     children_order: Array<string>;
     lane_id: string | null;
     parent_id: string | null;
+    depth: number;
 }
 
 interface KanbanLane {
