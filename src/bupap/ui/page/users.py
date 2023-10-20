@@ -83,11 +83,13 @@ def create_users_page():
                 _user_page_activity(session, shown_user)
 
     def _user_page_overview(session: sa.orm.Session, user: db.User):
+        modify_user_dialog = component.ModifyUser(user, cb_on_modify=on_create)
         with ui.row().classes("w-full justify-center"):
             with ui.column().classes("place-items-center gap-0"):
                 component.Avatar(user).classes("h-40")
                 ui.label(user.full_name).classes("font-bold text-xl mt-5")
-                ui.label("@" + user.name).classes("text-slate-500")
+                ui.label("@" + user.name).classes("text-slate-500 mb-5")
+                ui.button("Edit Profile", on_click=modify_user_dialog.open)
         project_data = {}
         for wp in user.work_periods:
             if isinstance(wp, db.WorkPeriodTask):

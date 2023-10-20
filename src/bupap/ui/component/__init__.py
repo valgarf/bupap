@@ -8,6 +8,7 @@ from .gantt import Gantt, GanttData, GanttEntryData, GanttEntryType, GanttMode, 
 from .header import Header
 from .kanban import Kanban, KanbanData, KanbanLane
 from .kanban_card import KanbanCard, KanbanCardData, KanbanTag
+from .modify_user import ModifyUser
 from .pick_date import PickDate
 from .project_tree import project_tree
 from .router import RequestInfo, Router

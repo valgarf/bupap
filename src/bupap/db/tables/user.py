@@ -9,6 +9,7 @@ import sqlalchemy as sa
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from bupap.avatar import deserialize_avatar
 from bupap.permissions import Permission
 
 from .base import Base, intfk, str_20, str_50, str_60, text
@@ -100,3 +101,7 @@ class User(Base):
             .where(WorkPeriodWorking.user == self)
             .where(WorkPeriodWorking.ended_at == None)
         ).first()
+
+    @property
+    def rendered_avatar(self) -> str:
+        return deserialize_avatar(self.avatar).render()

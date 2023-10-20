@@ -122,10 +122,10 @@ export default {
         dragend() {
             this.dragged.entry = null
         },
-            move(event) {
+        move(event) {
             this.dragged.x = event.offsetX;
             this.dragged.y = event.offsetY;
-            },
+        },
     },
     props: {
         initial_data: null,

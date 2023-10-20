@@ -4,7 +4,7 @@ import sqlalchemy as sa
 from loguru import logger
 
 from bupap import permissions
-from bupap.avatar import random_avatar
+from bupap.avatar import random_avatar, serialize_avatar
 
 from . import session as db_session
 from .tables import AssignedGlobalRole, EstimateType, Role, RoleType, Timesink, User
@@ -19,7 +19,9 @@ def check_admin_exists(initial_password: str | None = None):
         admin_role = session.scalars(sa.select(Role).where(Role.name == "Admin")).first()
         assert admin_role is not None
         if not admin_user:
-            user = User(name="admin", full_name="Administrator", avatar=random_avatar())
+            user = User(
+                name="admin", full_name="Administrator", avatar=serialize_avatar(random_avatar())
+            )
             user.set_password(password)
             session.add(user)
             session.add(AssignedGlobalRole(user=user, role=admin_role))
