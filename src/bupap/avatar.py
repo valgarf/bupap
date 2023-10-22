@@ -64,6 +64,6 @@ def deserialize_avatar(value: str) -> pa.Avatar:
         clothing=pa.ClothingType(data["clothing"]),
         clothing_color=data["clothing_color"],
         shirt_graphic=pa.ClothingGraphic(data["shirt_graphic"]),
-        shirt_text="Hola!",
+        shirt_text=data["shirt_text"],
         title=None,
     )
