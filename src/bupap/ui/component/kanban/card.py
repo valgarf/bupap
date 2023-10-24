@@ -4,27 +4,8 @@ from dataclasses import dataclass, field
 from typing import Awaitable, Callable, List, Optional
 
 from nicegui import ui
-from py_ts_interfaces import Interface
 
-
-@dataclass
-class KanbanTag(Interface):
-    text: str
-    color: str
-    text_color: str
-
-
-@dataclass
-class KanbanCardData(Interface):
-    id: str
-    title: str
-    tags: List[KanbanTag]
-    detached: bool
-    link: bool
-    depth: int
-    children_order: List[str] = field(default_factory=list)
-    lane_id: Optional[str] = None
-    parent_id: Optional[str] = None
+from .model import KanbanCardData
 
 
 class KanbanCard(ui.element, component="kanban_card.vue"):

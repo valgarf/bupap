@@ -13,16 +13,8 @@ from starlette.middleware.sessions import SessionMiddleware
 from bupap import db
 from bupap.ui import component
 from bupap.ui.common import Tree, TreeNode, get_user
-from bupap.ui.component import (
-    Kanban,
-    KanbanCardData,
-    KanbanData,
-    KanbanLane,
-    KanbanTag,
-    RequestInfo,
-    Router,
-    project_tree,
-)
+from bupap.ui.component import RequestInfo, Router, project_tree
+from bupap.ui.component.kanban import Kanban, KanbanCardData, KanbanData, KanbanLaneData, KanbanTag
 
 # from bupap.ui.component.kanban_card import KanbanCard
 
@@ -79,7 +71,7 @@ def create_projects_page():
         pass
         data = KanbanData()
         for state in db.TaskState:
-            lane = KanbanLane(state.name, state.name)
+            lane = KanbanLaneData(state.name, state.name)
             data.lanes[lane.id] = lane
             data.lane_order.append(lane.id)
             tasks = [t for t in project.tasks if t.task_state == state]
