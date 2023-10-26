@@ -8,7 +8,7 @@ from nicegui import ui
 from .model import KanbanCardData
 
 
-class KanbanCard(ui.element, component="kanban_card.vue"):
+class KanbanCard(ui.element, component="kanban_card_sfc.vue"):
     def __init__(
         self,
         card: KanbanCardData,

@@ -15,10 +15,10 @@ from .card import KanbanCard
 from .model import KanbanCardData, KanbanData, KanbanLaneData, KanbanTag
 
 
-class Kanban(ui.element, component="kanban_board_sfc.vue"):
+class KanbanList(ui.element, component="kanban_list_sfc.vue"):
     def __init__(
         self,
-        data: KanbanData,
+        data: list[KanbanCardData],
         on_card_change: Callable[[KanbanCardData | None, KanbanCardData], None | Awaitable[None]]
         | None = None,
         on_open_link: Callable[[KanbanCardData], None | Awaitable[None]] | None = None,
@@ -45,3 +45,10 @@ class Kanban(ui.element, component="kanban_board_sfc.vue"):
         #     result = self._on_change(date.fromisoformat(evt.args))
         #     if isawaitable(result):
         #         await result
+
+
+# <style scoped>
+# nicegui-kanban_card * {
+#     pointer-events: none;
+# }
+# </style>

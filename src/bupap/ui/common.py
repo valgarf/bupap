@@ -12,7 +12,7 @@ from fastapi import Request
 # def is_authenticated(request: Request) -> bool:
 #     return session_info.get(request.session.get('id'), {}).get('authenticated', False)
 from loguru import logger
-from nicegui import globals, ui
+from nicegui import app, ui
 
 from bupap import db
 
@@ -43,8 +43,11 @@ def get_user(request: Request, required: bool = True) -> db.User:
     return result
 
 
+_global_client_data = {}
+
+
 def client_data() -> Dict[Any, Any]:
-    return globals.index_client._custom_data
+    return _global_client_data.setdefault(app.storage.browser["id"], {})
 
 
 def format_timedelta(td: timedelta):

@@ -79,7 +79,7 @@ def _calc_text_color(col: str):
     return "#000000" if (r * 0.299 + g * 0.587 + b * 0.114) > 186 else "#ffffff"
 
 
-class Gantt(ui.element, component="gantt.vue"):
+class Gantt(ui.element, component="gantt_sfc.vue"):
     def __init__(
         self,
         title: str,

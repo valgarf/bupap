@@ -13,7 +13,7 @@ from .errors import Errors
 # register_component("pick_date", __file__, "pick_date.vue")
 
 
-class PickDate(ui.element, component="pick_date.vue"):
+class PickDate(ui.element, component="pick_date_sfc.vue"):
     def __init__(
         self,
         initial: date | None = None,

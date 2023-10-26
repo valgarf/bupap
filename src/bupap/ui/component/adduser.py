@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Callable
 
 import sqlalchemy as sa
 from loguru import logger
-from nicegui import globals, ui
+from nicegui import ui
 
 from bupap import db
 from bupap.avatar import random_avatar

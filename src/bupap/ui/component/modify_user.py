@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Callable
 import python_avatars as pa
 import sqlalchemy as sa
 from loguru import logger
-from nicegui import globals, ui
+from nicegui import ui
 from python_avatars.core import AvatarPart, _get_path
 from python_avatars.svg_parser import SVGParser
 
