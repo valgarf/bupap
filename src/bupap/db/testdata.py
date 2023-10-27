@@ -589,7 +589,20 @@ def generate_task_for_project(state: TestdataState, db_projects: list[Project]):
                 f"step {i}",
                 parent_id=db_task.id,
             )
-            create_task(subtask, external_session=state.session)
+            db_subtask = create_task(subtask, external_session=state.session)
+            if random() > 0.5:
+                state.session.flush()
+                for j in range(3):
+                    subsubtask = NewTask(
+                        task.project_id,
+                        TaskType.FEATURE,
+                        priority,
+                        state.current,
+                        f"Sub-Subtask {i}/{j}",
+                        f"step {i}/{j}",
+                        parent_id=db_subtask.id,
+                    )
+                    create_task(subsubtask, external_session=state.session)
     state.session.flush()
     users = []
     if db_proj in state.projects.frontend:
