@@ -5,8 +5,14 @@
                 @dragover="(evt) => dragover(node, evt)" 
                 @dragstart="(evt) => dragstart(node, evt)" 
                 @dragend="(evt) => dragend(node, evt)">
-            <nicegui-kanban_card_sfc draggable="true" :class="card_classes(node)" :card="node.card"/>
-            <div v-if="node.children.length>0" class="nicegui-row items-stretch gap-0">
+            <template v-if="node.card.detached && this.depth==0">
+                <nicegui-kanban_card_sfc :class="card_classes(node.parent)" :card="node.parent.card" :detached="true"/>
+                <nicegui-kanban_card_sfc draggable="true" class="ml-10 mt-1" :class="card_classes(node)" :card="node.card" :detached="false"/>
+            </template>
+            <template v-else>
+                <nicegui-kanban_card_sfc draggable="true" :class="card_classes(node)" :card="node.card" :detached="node.card.detached && this.depth>0"/>
+            </template>
+            <div v-if="node.children.length>0 && !(node.card.detached && this.depth>0)" class="nicegui-row items-stretch gap-0">
                 <q-btn :class="toggle_btn_classes(node)" @click="(evt)=>toggle_expand(node)">{{toggle_btn_text(node)}}</q-btn>
                 <nicegui-kanban_list_sfc v-if="node.expanded && !node.dragged" 
                         class="grow" :parent_id="node.id" :nodes="node.children" :depth="depth+1" 
@@ -15,6 +21,7 @@
                         @dragend_card="dragend_card" 
                         @dragover_card="dragover_card"/>
             </div>
+            
         </div>
     </div>
 </template>
@@ -33,7 +40,7 @@ export default {
     },
     methods: {
         list_entries() {
-            return this.nodes.filter((n) => !n.card.detached || this.depth==0)
+            return this.nodes
         },
         // open_link(val) {
         //     console.log(val);
@@ -85,7 +92,7 @@ export default {
         
         },
         show_card(node) {
-            return !node.dragged
+            return !node.dragged || (node.card.detached && this.depth>0)
             // return (this.dragged.entry == null || this.dragged.entry.id != card.id);
         },
         toggle_expand(node) {
