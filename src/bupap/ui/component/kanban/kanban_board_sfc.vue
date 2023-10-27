@@ -3,7 +3,14 @@
         <q-card v-for="lane in lanes()" :key="lane.id" class="nicegui-card min-w-[350pt] items-stretch">
             <div class="font-bold text-xl mt-5">{{lane.title}}</div>
             <q-scroll-area class="m-0 p-0 pr-2 max-w-[330] grow">
-                <div class="p-2"><nicegui-kanban_list_sfc :parent_id="null" :nodes="nodes_lane(lane)" :depth="0" @toggle_expand="toggle_expand" @dragstart_card="dragstart_card" @dragend_card="dragend_card" @dragover_card="dragover_card" @dragleave_card="dragleave_card"/></div>
+                <div class="p-2">
+                    <nicegui-kanban_list_sfc 
+                            :parent_id="null" :nodes="nodes_lane(lane)" :depth="0" 
+                            @toggle_expand="toggle_expand" 
+                            @dragstart_card="dragstart_card" 
+                            @dragend_card="dragend_card" 
+                            @dragover_card="dragover_card"/>
+                </div>
             </q-scroll-area>
         </q-card>
     </div>
@@ -19,7 +26,7 @@ export default {
         return {
             kanban: this.initial_data,
             nodes: this.compute_nodes(this.initial_data),
-            dragged: {x:0,y:0,target:null, count: 0},
+            dragged: {x:0,y:0, target:null, count: 0},
         }
     },
     methods: {
@@ -36,6 +43,11 @@ export default {
                 let intk = parseInt(k)
                 nodes[intk] = {parent: null, children: [], id: intk, card: v, expanded: true, dragged: false}
             }
+            this.update_node_hierachy(nodes)
+            // console.log(nodes)
+            return nodes
+        },
+        update_node_hierachy(nodes) {
             for (let n of Object.values(nodes)) {
                 n.children = n.card.children_order.map((cid) => nodes[cid])
                 var p = nodes[n.card.parent_id]
@@ -43,13 +55,11 @@ export default {
                     n.parent = p
                 }
             }
-            for (let n of Object.values(nodes)) {
-                if (n.parent != null && n.parent.children.indexOf(n) == -1) {
-                    console.error(n, n.parent)
-                }
-            }
-            // console.log(nodes)
-            return nodes
+            // for (let n of Object.values(nodes)) {
+            //     if (n.parent != null && n.parent.children.indexOf(n) == -1) {
+            //         console.error(n, n.parent)
+            //     }
+            // }
         },
         nodes_lane(lane) {
             let result = lane.card_order.map((cid) => this.nodes[cid]).filter((n) => n!=undefined && n!=null && (n.parent==null || n.card.detached));
@@ -120,26 +130,83 @@ export default {
             //     this.dragged.target = target_node
             //     this.dragged.count = 0
             // }
-            
+            let change = false
             let nodes = node_ids.map((nid) => this.nodes[nid])
-            let orig_lane = this.kanban.lanes[nodes[0].card.lane_id]
             let target_lane = this.kanban.lanes[target_node.card.lane_id]
-            if (orig_lane == target_lane && nodes.length == 1) {
-                let lane = orig_lane
-                let dragged_node = nodes[0]
-                let target_idx = lane.card_order.indexOf(target_node.id)
-                let dragged_idx = lane.card_order.indexOf(dragged_node.id)
-                if (dragged_idx>target_idx && y<this.dragged.y && this.acceptable_above(dragged_node, target_node, lane, target_idx)) {
-                    lane.card_order.splice(dragged_idx, 1)
-                    lane.card_order.splice(target_idx, 0, dragged_node.id)
-                    console.log(dragged_node, "up", dragged_idx, target_idx);
+            for (let dragged_node of nodes) {
+                let is_same_parent = target_node.parent == dragged_node.parent && target_node.parent != null
+                let orig_lane = this.kanban.lanes[dragged_node.card.lane_id]
+                let orig_list = is_same_parent ? target_node.parent.card.children_order : orig_lane.card_order
+                let dragged_idx = orig_list.indexOf(dragged_node.id)
+                if (dragged_idx == -1) {
+                    console.error("Could not determine dragging target idx for parent", dragged_node.parent, "and child", dragged_node)
+                    continue
                 }
-                else if (dragged_idx<target_idx && y>this.dragged.y && this.acceptable_below(dragged_node, target_node, lane, target_idx)) {
-                    lane.card_order.splice(target_idx+1, 0, dragged_node.id)
-                    lane.card_order.splice(dragged_idx, 1)
 
-                    console.log(dragged_node, "down", dragged_idx, target_idx);
+                let target_list = is_same_parent ? target_node.parent.card.children_order : target_lane.card_order
+                let target_idx = target_list.indexOf(target_node.id)
+                if (target_idx == -1) {
+                    console.error("Could not determine dragging target idx for parent", target_node.parent, "and child", target_node)
+                    return
                 }
+
+                let down = y > this.dragged.y // movement direction is down
+                let up = !down && (y < this.dragged.y || orig_lane !== target_lane) // movement direction is up
+                if (!up && !down) {
+                    // no movement
+                    continue
+                }
+                if (orig_list == target_list) {
+                    if ((up && target_idx == dragged_idx + 1) || (down && target_idx == dragged_idx - 1)) {
+                        continue // would not move
+                    }
+                    if (dragged_idx <= target_idx) {
+                        // we remove before inserting, we need to fix the target idx
+                        // console.log("updated target idx (same list):", target_idx, target_idx-1)
+                        target_idx -= 1
+                    }
+                }
+                change = true
+                // console.log("drag op:", up? "up" : "down", dragged_idx, down ? target_idx+1: target_idx, "orig parent", dragged_node.parent, "new parent", target_node.parent)
+                orig_list.splice(dragged_idx, 1) // remove from original position
+                if (down) {
+                    target_idx += 1 // next node should be inserted below
+                }
+                target_list.splice(target_idx, 0, dragged_node.id)
+                if (dragged_node.card.parent_id != null) {
+                    dragged_node.card.detached = (target_node.parent == null)
+                }
+
+                // if (orig_list === target_list && dragged_idx <= target_idx) {
+                //     // we removed one from 
+                // }
+                // if (y > this.dragged.y) {
+                    
+                //     // dragging down (insert after)
+                // }
+                // else if (y < this.dragged.y) {
+                //     // dragging up or lane change without y change (insert before) 
+                // }
+
+                // if (orig_lane == target_lane && nodes.length == 1) {
+                //     let lane = orig_lane
+                    
+                //     if (dragged_idx>target_idx && y<this.dragged.y && this.acceptable_above(dragged_node, target_node, lane, target_idx)) {
+                //         lane.card_order.splice(dragged_idx, 1)
+                //         lane.card_order.splice(target_idx, 0, dragged_node.id)
+                //         console.log(dragged_node, "up", dragged_idx, target_idx);
+                //     }
+                //     else if (dragged_idx<target_idx && y>this.dragged.y && this.acceptable_below(dragged_node, target_node, lane, target_idx)) {
+                //         lane.card_order.splice(target_idx+1, 0, dragged_node.id)
+                //         lane.card_order.splice(dragged_idx, 1)
+
+                //         console.log(dragged_node, "down", dragged_idx, target_idx);
+                //     }
+                // }
+            }
+            // TODO: if change, emit event
+            if (change) {
+                this.update_node_hierachy(this.nodes)
             }
             this.dragged.x = x
             this.dragged.y = y 
