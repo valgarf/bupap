@@ -6,22 +6,30 @@
                 @dragstart="(evt) => dragstart(node, evt)" 
                 @dragend="(evt) => dragend(node, evt)">
             <template v-if="node.card.detached && this.depth==0">
-                <nicegui-kanban_card_sfc :class="card_classes(node.parent)" :card="node.parent.card" :detached="true"/>
-                <nicegui-kanban_card_sfc draggable="true" class="ml-10 mt-1" :class="card_classes(node)" :card="node.card" :detached="false"/>
+                <nicegui-kanban_card_sfc class="mt-0" :class="card_classes(node.parent)" :card="node.parent.card" :detached="true"/>
+                <!-- <nicegui-kanban_card_sfc draggable="true" class="ml-10 mt-1" :class="card_classes(node)" :card="node.card" :detached="false"/> -->
+                <div class="nicegui-row items-stretch gap-0 mt-[-3pt]">
+                    <div class="w-10" ></div>
+                    <nicegui-kanban_list_sfc 
+                            class="grow" :parent_id="node.parent.id" :nodes="[node]" :depth="depth+1" :detached_parent="true"
+                            @toggle_expand="toggle_expand" 
+                            @dragstart_card="dragstart_card" 
+                            @dragend_card="dragend_card" 
+                            @dragover_card="dragover_card"/>
+                </div>
             </template>
             <template v-else>
-                <nicegui-kanban_card_sfc draggable="true" :class="card_classes(node)" :card="node.card" :detached="node.card.detached && this.depth>0"/>
-            </template>
-            <div v-if="node.children.length>0 && !(node.card.detached && this.depth>0)" class="nicegui-row items-stretch gap-0">
-                <q-btn :class="toggle_btn_classes(node)" @click="(evt)=>toggle_expand(node)">{{toggle_btn_text(node)}}</q-btn>
-                <nicegui-kanban_list_sfc v-if="node.expanded && !node.dragged" 
-                        class="grow" :parent_id="node.id" :nodes="node.children" :depth="depth+1" 
-                        @toggle_expand="toggle_expand" 
-                        @dragstart_card="dragstart_card" 
-                        @dragend_card="dragend_card" 
-                        @dragover_card="dragover_card"/>
-            </div>
-            
+                <nicegui-kanban_card_sfc draggable="true" :class="card_classes(node)" :card="node.card" :detached="node.card.detached && this.depth>0 && !this.detached_parent"/>
+                <div v-if="node.children.length>0 && !(node.card.detached && this.depth>0 &&!this.detached_parent)" class="nicegui-row items-stretch gap-0 mt-[-3pt]">
+                    <q-btn :class="toggle_btn_classes(node)" @click="(evt)=>toggle_expand(node)">{{toggle_btn_text(node)}}</q-btn>
+                    <nicegui-kanban_list_sfc v-if="node.expanded && !node.dragged" 
+                            class="grow" :parent_id="node.id" :nodes="node.children" :depth="depth+1" :detached_parent="false"
+                            @toggle_expand="toggle_expand" 
+                            @dragstart_card="dragstart_card" 
+                            @dragend_card="dragend_card" 
+                            @dragover_card="dragover_card"/>
+                </div>
+            </template>            
         </div>
     </div>
 </template>
@@ -35,7 +43,8 @@ export default {
         return {
             parent_id: this.parent_id,
             nodes: this.nodes,
-            depth: this.depth
+            depth: this.depth,
+            detached_parent: this.detached_parent
         }
     },
     methods: {
@@ -92,7 +101,7 @@ export default {
         
         },
         show_card(node) {
-            return !node.dragged || (node.card.detached && this.depth>0)
+            return !node.dragged || (node.card.detached && this.depth>0 && !this.detached_parent)
             // return (this.dragged.entry == null || this.dragged.entry.id != card.id);
         },
         toggle_expand(node) {
@@ -137,7 +146,7 @@ export default {
         },
         dragstart(node, evt) {
             evt.dataTransfer.clearData()
-            let drag_data = {parent_id: node.parent == null? null : node.parent.id, node_ids: [node.id]}
+            let drag_data = {parent_id: node.parent == null ? null : node.parent.id, node_ids: [node.id]}
             // console.log("set drag data", drag_data)
             evt.dataTransfer.setData("application/json", JSON.stringify(drag_data))
             // TODO: set task url
@@ -161,7 +170,8 @@ export default {
     props: {
         parent_id: null,
         nodes: null,
-        depth: 0
+        depth: 0,
+        detached_parent: false,
     }
 }
 </script>

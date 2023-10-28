@@ -5,7 +5,7 @@
             <q-scroll-area class="m-0 p-0 pr-2 max-w-[330] grow">
                 <div class="p-2">
                     <nicegui-kanban_list_sfc 
-                            :parent_id="null" :nodes="nodes_lane(lane)" :depth="0" 
+                            :parent_id="null" :nodes="nodes_lane(lane)" :depth="0" :detached_parent="false"
                             @toggle_expand="toggle_expand" 
                             @dragstart_card="dragstart_card" 
                             @dragend_card="dragend_card" 
