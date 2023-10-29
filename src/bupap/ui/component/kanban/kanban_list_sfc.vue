@@ -1,10 +1,9 @@
 <template>
     <div :class="column_classes()">
         <div v-for="node in list_entries()" 
-                :class="card_div_classes(node)" :key="node.id" 
-                @dragover="(evt) => dragover(node, evt)" 
-                @dragstart="(evt) => dragstart(node, evt)" 
-                @dragend="(evt) => dragend(node, evt)">
+                :class="card_div_classes(node)" :key="node_key(node)" 
+                @dragover.prevent="(evt) => dragover(node, evt)" 
+                @dragstart="(evt) => dragstart(node, evt)">
             <template v-if="node.card.detached && this.depth==0">
                 <nicegui-kanban_card_sfc class="mt-0" :class="card_classes(node.parent)" :card="node.parent.card" :detached="true"/>
                 <!-- <nicegui-kanban_card_sfc draggable="true" class="ml-10 mt-1" :class="card_classes(node)" :card="node.card" :detached="false"/> -->
@@ -14,19 +13,17 @@
                             class="grow" :parent_id="node.parent.id" :nodes="[node]" :depth="depth+1" :detached_parent="true"
                             @toggle_expand="toggle_expand" 
                             @dragstart_card="dragstart_card" 
-                            @dragend_card="dragend_card" 
                             @dragover_card="dragover_card"/>
                 </div>
             </template>
             <template v-else>
-                <nicegui-kanban_card_sfc draggable="true" :class="card_classes(node)" :card="node.card" :detached="node.card.detached && this.depth>0 && !this.detached_parent"/>
+                <nicegui-kanban_card_sfc :draggable="!node_is_detached(node)" :class="card_classes(node)" :card="node.card" :detached="node_is_detached(node)"/>
                 <div v-if="node.children.length>0 && !(node.card.detached && this.depth>0 &&!this.detached_parent)" class="nicegui-row items-stretch gap-0 mt-[-3pt]">
                     <q-btn :class="toggle_btn_classes(node)" @click="(evt)=>toggle_expand(node)">{{toggle_btn_text(node)}}</q-btn>
                     <nicegui-kanban_list_sfc v-if="node.expanded && !node.dragged" 
                             class="grow" :parent_id="node.id" :nodes="node.children" :depth="depth+1" :detached_parent="false"
                             @toggle_expand="toggle_expand" 
                             @dragstart_card="dragstart_card" 
-                            @dragend_card="dragend_card" 
                             @dragover_card="dragover_card"/>
                 </div>
             </template>            
@@ -38,7 +35,7 @@
 
 <script>
 export default {
-    //
+    // @dragend="(evt) => dragend(node, evt)"
     data() {
         return {
             parent_id: this.parent_id,
@@ -50,6 +47,12 @@ export default {
     methods: {
         list_entries() {
             return this.nodes
+        },
+        node_key(node) {
+            return this.depth+"-"+this.parent_id+"-"+node.id+"-"+this.detached_parent+"-"+node.card.detached
+        },
+        node_is_detached(node) {
+            return node.card.detached && this.depth>0 && !this.detached_parent
         },
         // open_link(val) {
         //     console.log(val);
@@ -101,7 +104,7 @@ export default {
         
         },
         show_card(node) {
-            return !node.dragged || (node.card.detached && this.depth>0 && !this.detached_parent)
+            return !node.dragged || this.node_is_detached(node)
             // return (this.dragged.entry == null || this.dragged.entry.id != card.id);
         },
         toggle_expand(node) {
@@ -153,19 +156,12 @@ export default {
             evt.stopPropagation()
             this.dragstart_card([node.id], evt.x, evt.y)          
         },
-        dragend(node, evt) {
-            evt.stopPropagation()
-            this.dragend_card([node.id])
-        },
         dragover_card(target_node_id, node_ids,x, y) {
             this.$emit("dragover_card", target_node_id, node_ids,x,y)
         },
         dragstart_card(node_ids,x,y) {
             this.$emit("dragstart_card", node_ids,x,y)
         },
-        dragend_card(node_ids) {
-            this.$emit("dragend_card", node_ids)
-        }
     },
     props: {
         parent_id: null,

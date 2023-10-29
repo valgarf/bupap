@@ -1,5 +1,5 @@
 <template>
-    <div class="nicegui-row p-4 overflow-x-auto grow flex-nowrap items-stretch">
+    <div class="nicegui-row p-4 overflow-x-auto grow flex-nowrap items-stretch" @drop="drop" @dragover.prevent="(evt)=>{}">
         <q-card v-for="lane in lanes()" :key="lane.id" class="nicegui-card min-w-[350pt] items-stretch">
             <div class="font-bold text-xl mt-5">{{lane.title}}</div>
             <q-scroll-area class="m-0 p-0 pr-2 max-w-[330] grow">
@@ -8,7 +8,6 @@
                             :parent_id="null" :nodes="nodes_lane(lane)" :depth="0" :detached_parent="false"
                             @toggle_expand="toggle_expand" 
                             @dragstart_card="dragstart_card" 
-                            @dragend_card="dragend_card" 
                             @dragover_card="dragover_card"/>
                 </div>
             </q-scroll-area>
@@ -167,7 +166,7 @@ export default {
                     }
                 }
                 change = true
-                // console.log("drag op:", up? "up" : "down", dragged_idx, down ? target_idx+1: target_idx, "orig parent", dragged_node.parent, "new parent", target_node.parent)
+                // console.log("drag op:", up? "up" : "down", dragged_idx, down ? target_idx+1: target_idx, "info:", {is_same_parent: is_same_parent, orig_lane: orig_lane, target_lane: target_lane, target_node: target_node})
                 orig_list.splice(dragged_idx, 1) // remove from original position
                 if (down) {
                     target_idx += 1 // next node should be inserted below
@@ -176,39 +175,16 @@ export default {
                 if (dragged_node.card.parent_id != null) {
                     dragged_node.card.detached = (target_node.parent == null)
                 }
-                dragged_node.card.lane_id = target_node.card.lane_id
-
-                // if (orig_list === target_list && dragged_idx <= target_idx) {
-                //     // we removed one from 
-                // }
-                // if (y > this.dragged.y) {
-                    
-                //     // dragging down (insert after)
-                // }
-                // else if (y < this.dragged.y) {
-                //     // dragging up or lane change without y change (insert before) 
-                // }
-
-                // if (orig_lane == target_lane && nodes.length == 1) {
-                //     let lane = orig_lane
-                    
-                //     if (dragged_idx>target_idx && y<this.dragged.y && this.acceptable_above(dragged_node, target_node, lane, target_idx)) {
-                //         lane.card_order.splice(dragged_idx, 1)
-                //         lane.card_order.splice(target_idx, 0, dragged_node.id)
-                //         console.log(dragged_node, "up", dragged_idx, target_idx);
-                //     }
-                //     else if (dragged_idx<target_idx && y>this.dragged.y && this.acceptable_below(dragged_node, target_node, lane, target_idx)) {
-                //         lane.card_order.splice(target_idx+1, 0, dragged_node.id)
-                //         lane.card_order.splice(dragged_idx, 1)
-
-                //         console.log(dragged_node, "down", dragged_idx, target_idx);
-                //     }
-                // }
+                if (!is_same_parent) {
+                    // we might have changed the lane here, update the card's lane_id
+                    dragged_node.card.lane_id = target_node.card.lane_id
+                }
             }
             // TODO: if change, emit event
-            // if (change) {
-            //     this.update_node_hierachy(this.nodes)
-            // }
+            if (change) {
+                // this.$forceUpdate();
+                this.update_node_hierachy(this.nodes)
+            }
             this.dragged.x = x
             this.dragged.y = y 
                        
@@ -236,8 +212,24 @@ export default {
             //     return
             // }
         },
-        dragend_card(node_ids) {
-            console.log(node_ids)
+        drop(evt) {
+            let drag_data_str = evt.dataTransfer.getData("application/json")
+            if (drag_data_str == null) {
+                // not a drag event for us
+                return
+            }
+            try {
+                var drag_data = JSON.parse(drag_data_str)
+            } catch(err) {
+                console.warn("Failed to decode json from drag object:", drag_data_str)
+                return
+            }
+            if (drag_data["node_ids"] == null) {
+                // not a drag event for us
+                return
+            }
+            let node_ids = drag_data["node_ids"]
+            evt.stopPropagation()
             for (let node_id of node_ids) {
                 this.nodes[node_id].dragged = false
             }
