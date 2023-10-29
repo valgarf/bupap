@@ -52,6 +52,7 @@ def use_or_open_session(session: Session | None) -> Iterator[Session]:
         with use_or_open_session(external_session) as session:
             # session is the same as `external_session` if one is provided, or a newly created one.
             ...
+    ```
     """
     if session is not None:
         yield session

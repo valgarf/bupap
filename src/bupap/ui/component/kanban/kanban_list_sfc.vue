@@ -73,7 +73,7 @@ export default {
                 return ["w-10", "mt-2", "mr-1"]
             }
             else {
-                return "ml-10 h-5 grow mt-0"
+                return "ml-10 h-5 grow mt-2"
             }
         },
         card_div_classes(node) {

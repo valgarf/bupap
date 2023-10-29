@@ -139,14 +139,14 @@ export default {
                 let orig_list = is_same_parent ? target_node.parent.card.children_order : orig_lane.card_order
                 let dragged_idx = orig_list.indexOf(dragged_node.id)
                 if (dragged_idx == -1) {
-                    console.error("Could not determine dragging target idx for parent", dragged_node.parent, "and child", dragged_node)
+                    console.error("Could not determine dragging source idx for parent", dragged_node.parent, "and child", dragged_node, "info:", {is_same_parent: is_same_parent, orig_lane: orig_lane, target_lane: target_lane, target_node: target_node})
                     continue
                 }
 
                 let target_list = is_same_parent ? target_node.parent.card.children_order : target_lane.card_order
                 let target_idx = target_list.indexOf(target_node.id)
                 if (target_idx == -1) {
-                    console.error("Could not determine dragging target idx for parent", target_node.parent, "and child", target_node)
+                    console.error("Could not determine dragging target idx for parent", target_node.parent, "and child", target_node, "info:", {is_same_parent: is_same_parent, orig_lane: orig_lane, target_lane: target_lane, target_node: target_node})
                     return
                 }
 
@@ -176,6 +176,7 @@ export default {
                 if (dragged_node.card.parent_id != null) {
                     dragged_node.card.detached = (target_node.parent == null)
                 }
+                dragged_node.card.lane_id = target_node.card.lane_id
 
                 // if (orig_list === target_list && dragged_idx <= target_idx) {
                 //     // we removed one from 
@@ -205,9 +206,9 @@ export default {
                 // }
             }
             // TODO: if change, emit event
-            if (change) {
-                this.update_node_hierachy(this.nodes)
-            }
+            // if (change) {
+            //     this.update_node_hierachy(this.nodes)
+            // }
             this.dragged.x = x
             this.dragged.y = y 
                        
@@ -236,6 +237,7 @@ export default {
             // }
         },
         dragend_card(node_ids) {
+            console.log(node_ids)
             for (let node_id of node_ids) {
                 this.nodes[node_id].dragged = false
             }
