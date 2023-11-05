@@ -2,7 +2,7 @@
     <div :class="column_classes()">
         <div v-for="node in list_entries()" 
                 :class="card_div_classes(node)" :key="node_key(node)" 
-                @dragover.prevent="(evt) => dragover(node, evt)" 
+
                 @dragstart="(evt) => dragstart(node, evt)">
             <template v-if="node.card.detached && this.depth==0">
                 <nicegui-kanban_card_sfc class="mt-0" :class="card_classes(node.parent)" :card="node.parent.card" :detached="true" :dragged="false"/>
@@ -36,6 +36,7 @@
 
 
 <script>
+//                 <!-- @dragover.prevent="(evt) => dragover(node, evt)"  -->
 export default {
     // @dragend="(evt) => dragend(node, evt)"
     data() {

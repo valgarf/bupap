@@ -44,8 +44,6 @@ export default {
                 let ref = this.$refs["card"]
                 if (ref != null) {
                     ref = ref._.subTree.el
-                    console.log(ref)
-                    console.log(ref.getBoundingClientRect())
                     this.$emit("dragging_ref", ref)
                 }
             }
