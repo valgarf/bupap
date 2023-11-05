@@ -18,26 +18,11 @@ export default {
         }
     },
     mounted() {
-        console.log("mounted")
         this.check_dragged()
     },
     updated() {
-        console.log("updated")
         this.check_dragged()
     },
-    // beforeUpdate() {
-    //     console.log("beforeUupdate");
-    // },
-    // mounted() {
-    //     console.log("mounted")
-    // },
-    // onBeforeUpdated() {
-    //     console.log("updated")
-    //     if (this.dragged) {
-    //         console.log(this.$refs)
-    //         console.log(this.card.title)
-    //     }
-    // },
     methods: {
         check_dragged() {
             if (this.dragged) {
@@ -57,9 +42,6 @@ export default {
             }
             else {
                 var result = ["hover:bg-slate-200", "cursor-pointer"] 
-            }
-            if (this.dragged) {
-                result.push("invisible")
             }
             return result
         }

@@ -10,8 +10,7 @@
                             :parent_id="null" :nodes="lane.top_level_nodes" :depth="0" :detached_parent="false"
                             @toggle_expand="toggle_expand" 
                             @dragging_ref="dragging_ref"
-                            @dragstart_card="dragstart_card" 
-                            @dragover_card="dragover_card"/>
+                            @dragstart_card="dragstart_card"/>
                 </div>
             </q-scroll-area>
         </q-card>
@@ -26,18 +25,12 @@
 export default {
     data() {
         let kanban = this.compute_kanban(this.initial_data)
-        console.log(kanban)
         return {
             kanban: kanban,
             nodes: kanban.nodes,
             dragged: {x:0,y:0, target:null, count: 0, ref: null, blocked: false, nodes: []},
         }
     },
-    // updated() {
-    //     if (this.dragged.ref != null) {
-    //         console.log(this.dragged.ref.getBoundingClientRect());
-    //     }
-    // },
     methods: {
         // open_link(val) {
         //     console.log(val);
@@ -47,7 +40,7 @@ export default {
             let nodes = {}
             for (let [k, v] of Object.entries(initial_data.cards)) {
                 let intk = parseInt(k)
-                nodes[intk] = {parent: null, children: [], id: intk, card: v, expanded: true, dragged: false, _lane: null,
+                nodes[intk] = {parent: null, children: [], id: intk, card: v, expanded: false, dragged: false, _lane: null,
                     get lane() {return this.top_level? this._lane : this.parent.lane},
                     set lane(value) {
                         if (this.detached || this.parent == null) {
@@ -84,8 +77,6 @@ export default {
                     }
                 }
             }
-
-            // console.log(nodes)
 
             for (let n of Object.values(nodes)) {
                 n.children = n.card.children_order.map((cid) => nodes[cid])
@@ -143,21 +134,46 @@ export default {
             let x = evt.y
             let y = evt.y
             let down = y > this.dragged.y // movement direction is down
-            let up = !down && (y < this.dragged.y || this.dragged.nodes.some((node) => node.lane.id !== lane.id)) // movement direction is up
-            console.log(y, this.dragged.y, up, down, this.dragged.nodes, evt)
+            let up = !down && (y < this.dragged.y || this.dragged.nodes.some((node) => node.lane.id != lane.id)) // movement direction is up
             this.dragged.x = x
             this.dragged.y = y 
             if (!up && !down) {
                 return
             }
-            for (let node of this.dragged.nodes) {
-                if (up) {
-                    this.move_up(node, y);
+            if (this.dragged.nodes.every((node) => node.lane.id == lane.id))
+            {
+                for (let node of this.dragged.nodes) {
+                    if (up) {
+                        this.move_up(node, y);
+                    }
+                    if (down) {
+                        this.move_down(node, y);
+                    }
                 }
-                if (down) {
-                    this.move_down(node, y);
+            } else {
+                for (let node of this.dragged.nodes) {
+                    this.change_lane(node, lane, y);
                 }
             }
+        },
+        change_lane(node, lane, y) {
+            if (node.lane.id == lane.id) {
+                return
+            }
+            if (node.top_level) {
+                let index = node.lane.top_level_nodes.indexOf(node)
+                node.lane.top_level_nodes.splice(index, 1)
+            }
+            lane.top_level_nodes.push(node)
+            node.detached = node.parent != null
+            node.lane = lane
+
+            this.dragged.blocked = true;
+            this.$nextTick(() => {
+                this.$nextTick(() => {
+                    this.move_up(node, y)
+                })
+            })
         },
         move_up(node, y) {
             this.dragged.blocked = false;
@@ -203,7 +219,7 @@ export default {
                         console.error("could not determine node's root parent index", node, node.recursive_parents.at(-1), node.lane.top_level_nodes)
                         return
                     }
-                    lane.top_level_nodes.splice(index-1, 0, node)
+                    lane.top_level_nodes.splice(index, 0, node)
                     node.detached = true
                     node.lane = lane
                 }
@@ -273,87 +289,6 @@ export default {
                 })
             })
         },
-        dragover_card(target_node_id, node_ids, x, y) {
-            // let target_node = this.nodes[target_node_id]
-            // // if (this.dragged.target != null && this.dragged.target.id == target_node_id) {
-            // //     // console.log("enter identical", this.dragged.target, this.dragged.target.count, target_node_id)
-            // //     this.dragged.count += 1
-            // //     return
-            // // }
-            // // else {
-            // //     // console.log("enter other", this.dragged.target, this.dragged.target == null ? null : this.dragged.target.count, target_node_id)
-            // //     this.dragged.target = target_node
-            // //     this.dragged.count = 0
-            // // }
-            // this.$nextTick(() => {
-            //     if (this.dragged.ref != null) {
-            //         console.log("before", this.dragged.ref.getBoundingClientRect());
-            //     }
-            //     this.$nextTick(() => {
-            //         if (this.dragged.ref != null) {
-            //             console.log("after", this.dragged.ref.getBoundingClientRect());
-            //         }
-            //     })
-            // })
-            // let change = false
-            // let nodes = node_ids.map((nid) => this.nodes[nid])
-            // let target_lane = target_node.lane
-            // for (let dragged_node of nodes) {
-            //     let is_same_parent = target_node.parent == dragged_node.parent && target_node.parent != null
-            //     let orig_lane = dragged_node.lane
-            //     let orig_list = is_same_parent ? target_node.parent.children : dragged_node.top_level ? orig_lane.top_level_nodes : null
-            //     let dragged_idx = orig_list?.indexOf(dragged_node)
-            //     if (dragged_idx == -1) {
-            //         console.error("Could not determine dragging source idx for parent", dragged_node.parent, "and child", dragged_node, "info:", {is_same_parent: is_same_parent, orig_lane: orig_lane, target_lane: target_lane, target_node: target_node})
-            //         continue
-            //     }
-
-            //     let target_list = is_same_parent ? target_node.parent.children : target_lane.top_level_nodes
-            //     let target_idx = target_list.indexOf(target_node)
-            //     if (target_idx == -1) {
-            //         console.error("Could not determine dragging target idx for parent", target_node.parent, "and child", target_node, "info:", {is_same_parent: is_same_parent, orig_lane: orig_lane, target_lane: target_lane, target_node: target_node})
-            //         return
-            //     }
-
-            //     let down = y > this.dragged.y // movement direction is down
-            //     let up = !down && (y < this.dragged.y || orig_lane !== target_lane) // movement direction is up
-            //     if (!up && !down) {
-            //         // no movement
-            //         continue
-            //     }
-            //     if (orig_list == target_list) {
-            //         if ((up && target_idx == dragged_idx + 1) || (down && target_idx == dragged_idx - 1)) {
-            //             continue // would not move
-            //         }
-            //         if (dragged_idx <= target_idx) {
-            //             // we remove before inserting, we need to fix the target idx
-            //             // console.log("updated target idx (same list):", target_idx, target_idx-1)
-            //             target_idx -= 1
-            //         }
-            //     }
-            //     change = true
-            //     // console.log("drag op:", up? "up" : "down", dragged_idx, down ? target_idx+1: target_idx, "info:", {is_same_parent: is_same_parent, orig_lane: orig_lane, target_lane: target_lane, target_node: target_node})
-            //     if (dragged_idx != null) {
-            //         orig_list.splice(dragged_idx, 1) // remove from original position
-            //     }
-            //     if (down) {
-            //         target_idx += 1 // next node should be inserted below
-            //     }
-            //     target_list.splice(target_idx, 0, dragged_node)
-            //     if (dragged_node.parent != null) {
-            //         dragged_node.detached = (target_node.parent == null)
-            //     }
-            //     if (!is_same_parent) {
-            //         // we might have changed the lane here, update the card's lane_id
-            //         dragged_node.lane = target_node.lane
-            //     }
-            // }
-            // // TODO: if change, emit event
-
-            // this.dragged.x = x
-            // this.dragged.y = y 
-                       
-        },
         dragstart_card(node_ids, x, y) {
             this.dragged.x = x
             this.dragged.y = y
@@ -367,16 +302,6 @@ export default {
                     self.nodes[node_id].dragged = true
                 }
             });
-        },
-        dragleave_card(target_node_id) {
-            // if (this.dragged.target != null && this.dragged.target.id == target_node_id) {
-            //     // console.log("leave", this.dragged.target, this.dragged.target == null ? null : this.dragged.target.count, target_node_id)
-            //     this.dragged.count -= 1
-            //     if (this.dragged.count <= 0) {
-            //         this.dragged.target = null
-            //     }
-            //     return
-            // }
         },
         drop(evt) {
             let drag_data_str = evt.dataTransfer.getData("application/json")
@@ -404,12 +329,7 @@ export default {
         },
         dragging_ref(ref) {
             this.dragged.ref = ref
-            console.log("new ref:", this.dragged.ref.getBoundingClientRect())
         }
-        // move(event) {
-        //     this.dragged.x = event.offsetX;
-        //     this.dragged.y = event.offsetY;
-        // },
     },
     props: {
         initial_data: null,
