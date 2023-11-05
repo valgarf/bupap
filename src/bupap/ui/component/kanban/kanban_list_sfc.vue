@@ -5,24 +5,26 @@
                 @dragover.prevent="(evt) => dragover(node, evt)" 
                 @dragstart="(evt) => dragstart(node, evt)">
             <template v-if="node.card.detached && this.depth==0">
-                <nicegui-kanban_card_sfc class="mt-0" :class="card_classes(node.parent)" :card="node.parent.card" :detached="true"/>
+                <nicegui-kanban_card_sfc class="mt-0" :class="card_classes(node.parent)" :card="node.parent.card" :detached="true" :dragged="false"/>
                 <!-- <nicegui-kanban_card_sfc draggable="true" class="ml-10 mt-1" :class="card_classes(node)" :card="node.card" :detached="false"/> -->
                 <div class="nicegui-row items-stretch gap-0 mt-[-3pt]">
                     <div class="w-10" ></div>
                     <nicegui-kanban_list_sfc 
                             class="grow" :parent_id="node.parent.id" :nodes="[node]" :depth="depth+1" :detached_parent="true"
                             @toggle_expand="toggle_expand" 
+                            @dragging_ref="dragging_ref"
                             @dragstart_card="dragstart_card" 
                             @dragover_card="dragover_card"/>
                 </div>
             </template>
             <template v-else>
-                <nicegui-kanban_card_sfc :draggable="!node_is_detached(node)" :class="card_classes(node)" :card="node.card" :detached="node_is_detached(node)"/>
+                <nicegui-kanban_card_sfc :draggable="!node_is_detached(node)" :class="card_classes(node)" :card="node.card" :detached="node_is_detached(node)" :dragged="node_is_drag_target(node)" @dragging_ref="dragging_ref"/>
                 <div v-if="node.children.length>0 && !(node.card.detached && this.depth>0 &&!this.detached_parent)" class="nicegui-row items-stretch gap-0 mt-[-3pt]">
                     <q-btn :class="toggle_btn_classes(node)" @click="(evt)=>toggle_expand(node)">{{toggle_btn_text(node)}}</q-btn>
                     <nicegui-kanban_list_sfc v-if="node.expanded && !node.dragged" 
                             class="grow" :parent_id="node.id" :nodes="node.children" :depth="depth+1" :detached_parent="false"
                             @toggle_expand="toggle_expand" 
+                            @dragging_ref="dragging_ref"
                             @dragstart_card="dragstart_card" 
                             @dragover_card="dragover_card"/>
                 </div>
@@ -54,6 +56,9 @@ export default {
         node_is_detached(node) {
             return node.card.detached && this.depth>0 && !this.detached_parent
         },
+        node_is_drag_target(node) {
+            return node.dragged && !this.node_is_detached(node)
+        },
         // open_link(val) {
         //     console.log(val);
         // },
@@ -83,9 +88,9 @@ export default {
             var result = []
             // if (card.depth > 0)
                 // result.push("mt-[-4pt]")
-            if (!this.show_card(node)) {
-                result.push("invisible")
-            }
+            // if (!this.show_card(node)) {
+            //     result.push("invisible")
+            // }
             return result
         },
         card_classes(card) {
@@ -162,6 +167,9 @@ export default {
         dragstart_card(node_ids,x,y) {
             this.$emit("dragstart_card", node_ids,x,y)
         },
+        dragging_ref(ref) {
+            this.$emit("dragging_ref", ref)
+        }
     },
     props: {
         parent_id: null,

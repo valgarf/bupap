@@ -7,6 +7,7 @@
                     <nicegui-kanban_list_sfc 
                             :parent_id="null" :nodes="nodes_lane(lane)" :depth="0" :detached_parent="false"
                             @toggle_expand="toggle_expand" 
+                            @dragging_ref="dragging_ref"
                             @dragstart_card="dragstart_card" 
                             @dragover_card="dragover_card"/>
                 </div>
@@ -25,9 +26,14 @@ export default {
         return {
             kanban: this.initial_data,
             nodes: this.compute_nodes(this.initial_data),
-            dragged: {x:0,y:0, target:null, count: 0},
+            dragged: {x:0,y:0, target:null, count: 0, ref: null},
         }
     },
+    // updated() {
+    //     if (this.dragged.ref != null) {
+    //         console.log(this.dragged.ref.getBoundingClientRect());
+    //     }
+    // },
     methods: {
         // open_link(val) {
         //     console.log(val);
@@ -129,6 +135,16 @@ export default {
             //     this.dragged.target = target_node
             //     this.dragged.count = 0
             // }
+            this.$nextTick(() => {
+                if (this.dragged.ref != null) {
+                    console.log("before", this.dragged.ref.getBoundingClientRect());
+                }
+                this.$nextTick(() => {
+                    if (this.dragged.ref != null) {
+                        console.log("after", this.dragged.ref.getBoundingClientRect());
+                    }
+                })
+            })
             let change = false
             let nodes = node_ids.map((nid) => this.nodes[nid])
             let target_lane = this.kanban.lanes[target_node.card.lane_id]
@@ -233,7 +249,12 @@ export default {
             for (let node_id of node_ids) {
                 this.nodes[node_id].dragged = false
             }
+            this.dragged.ref = null
         },
+        dragging_ref(ref) {
+            this.dragged.ref = ref
+            console.log("new ref:", this.dragged.ref.getBoundingClientRect())
+        }
         // move(event) {
         //     this.dragged.x = event.offsetX;
         //     this.dragged.y = event.offsetY;
