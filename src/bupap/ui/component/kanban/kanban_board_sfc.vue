@@ -7,7 +7,8 @@
             <q-scroll-area class="m-0 p-0 pr-2 max-w-[330] grow">
                 <div class="p-2">
                     <nicegui-kanban_list_sfc 
-                            :parent_id="null" :nodes="lane.top_level_nodes" :depth="0" :detached_parent="false"
+                            :parent_id="null" :nodes="lane.top_level_nodes" :depth="0" 
+                            :detached_parent="false" :ref="lane.id"
                             @toggle_expand="toggle_expand" 
                             @dragging_ref="dragging_ref"
                             @dragstart_card="dragstart_card"/>
@@ -164,7 +165,24 @@ export default {
                 let index = node.lane.top_level_nodes.indexOf(node)
                 node.lane.top_level_nodes.splice(index, 1)
             }
-            lane.top_level_nodes.push(node)
+            // try to find correct index
+            let index = -1
+            let child_idx = 0
+            let children = this.$refs[lane.id][0]._.subTree.el.children // depends on layout!
+            for (const child of children) 
+            {
+                if (child.getBoundingClientRect().top > y){
+                    index = child_idx
+                    break
+                }
+                child_idx += 1
+            }
+            if (index == -1) {
+                lane.top_level_nodes.push(node)
+            }
+            else {
+                lane.top_level_nodes.splice(index, 0, node)
+            }
             node.detached = node.parent != null
             node.lane = lane
 
