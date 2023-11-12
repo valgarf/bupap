@@ -124,3 +124,11 @@ class Task(Base):
             .where(WorkPeriodTask.ended_at == None)
             .where(WorkPeriodTask.task == self)
         ).first()
+
+    def get_recursive_children(self, with_detached: bool = False):
+        result = []
+        for child in self.children:
+            if with_detached or child.attached:
+                result.append(child)
+                result.extend(child.get_recursive_children(with_detached))
+        return result

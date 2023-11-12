@@ -11,6 +11,7 @@ from nicegui import ui
 from starlette.middleware.sessions import SessionMiddleware
 
 from bupap import db
+from bupap.db.database import get_database
 from bupap.ui import component
 from bupap.ui.common import Tree, TreeNode, get_user
 from bupap.ui.component import RequestInfo, Router, project_tree
@@ -75,6 +76,7 @@ def create_projects_page():
             data.lanes[lane.id] = lane
             data.lane_order.append(lane.id)
             tasks = [t for t in project.tasks if t.task_state == state]
+            tasks.sort(key=lambda t: t.order_id or 0)
             for t in tasks:
                 card = KanbanCardData(
                     title=t.name,
@@ -113,6 +115,56 @@ def create_projects_page():
             _set_depth_rec(card)
 
         kanban = Kanban(data=data)
+
+        project_id = project.id
+
+        def moved_cards(data):
+            with get_database().session() as session:
+                state = db.TaskState[data.args["lane"]]
+                stmt = (
+                    sa.select(db.Task)
+                    .where(db.Task.project_id == project_id)
+                    .where(db.Task.task_state == state)
+                )
+                lane_order = session.scalars(stmt)
+                tasks = {
+                    c["id"]: (c["order"], c["detached"], session.get(db.Task, c["id"]))
+                    for c in data.args["cards"]
+                }
+                changed_tasks = sorted(tasks.values())
+                changed_task_keys = set(tasks.keys())
+                changed_task_children_ids = {
+                    rc.id for t in tasks.values() for rc in t[2].get_recursive_children()
+                }
+                lane_order = [
+                    t
+                    for t in lane_order
+                    if t.id not in changed_task_keys and t.id not in changed_task_children_ids
+                ]
+                lane_order.sort(key=lambda t: t.order_id or 0)
+                for tdata in changed_tasks:
+                    idx = tdata[0]
+                    lane_order.insert(idx, tdata[2])
+                    tdata[2].task_state = state
+                    for rc in tdata[2].get_recursive_children():
+                        idx += 1
+                        rc.task_state = state
+                        lane_order.insert(idx, rc)
+
+                for idx, t in enumerate(lane_order, start=1):
+                    # msg = f"{t.id}: {t.order_id} -> {idx}"
+                    t.order_id = idx
+
+                    if t.id in changed_task_keys:
+                        # msg += f" ({t.attached} -> {not tasks[t.id][1]})"
+                        t.attached = not tasks[t.id][1]
+                    # msg += f" {t.name}"
+                    # print(msg)
+                # session.rollback()
+
+            # print(data)
+
+        kanban.on("moved_cards", moved_cards)
 
         # with ui.row().classes("p-4 overflow-x-auto grow flex-nowrap items-stretch"):
         #     for state in db.TaskState:

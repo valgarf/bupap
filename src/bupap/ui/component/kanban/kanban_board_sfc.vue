@@ -339,8 +339,12 @@ export default {
             }
             let node_ids = drag_data["node_ids"]
             evt.stopPropagation()
-            for (let node_id of node_ids) {
-                this.nodes[node_id].dragged = false
+            let nodes = node_ids.map((nid) => this.nodes[nid])
+            let lane = nodes[0].lane
+            let ordered_nodes =lane.nodes 
+            this.$emit("moved_cards", {lane: lane.id, cards: nodes.map((n) => {return {id: n.id, order: ordered_nodes.indexOf(n), detached: n.detached}})})
+            for (let node of nodes) {
+                node.dragged = false
             }
             this.dragged.nodes = []
             this.dragged.ref = null
