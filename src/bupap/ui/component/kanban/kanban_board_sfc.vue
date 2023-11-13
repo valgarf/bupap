@@ -69,6 +69,9 @@ export default {
                         let p = this.parent
                         while (p!=null) {
                             result.push(p)
+                            if (p.detached) {
+                                break
+                            }
                             p = p.parent
                         }
                         return result
