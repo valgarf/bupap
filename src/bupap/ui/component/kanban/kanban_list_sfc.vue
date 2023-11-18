@@ -4,25 +4,35 @@
                 :class="card_div_classes(node)" :key="node_key(node)" 
                 @dragstart="(evt) => dragstart(node, evt)">
             <template v-if="node.card.detached && this.depth==0">
-                <nicegui-kanban_card_sfc class="mt-0" :class="card_classes(node.parent)" :card="node.parent.card" :detached="true" :dragged="false"/>
+                <nicegui-kanban_card_sfc 
+                        class="mt-0" :class="card_classes(node.parent)" :card="node.parent.card" 
+                        :detached="true" :dragged="false" @open_link="open_link"/>
                 <div class="nicegui-row items-stretch gap-0 mt-[-3pt]">
                     <div class="w-10" ></div>
                     <nicegui-kanban_list_sfc 
-                            class="grow" :parent_id="node.parent.id" :nodes="[node]" :depth="depth+1" :detached_parent="true"
+                            class="grow" :parent_id="node.parent.id" :nodes="[node]" 
+                            :depth="depth+1" :detached_parent="true"
                             @toggle_expand="toggle_expand" 
                             @dragging_ref="dragging_ref"
-                            @dragstart_card="dragstart_card" />
+                            @dragstart_card="dragstart_card"
+                            @open_link="open_link" />
                 </div>
             </template>
             <template v-else>
-                <nicegui-kanban_card_sfc :draggable="!node_is_detached(node)" :class="card_classes(node)" :card="node.card" :detached="node_is_detached(node)" :dragged="node_is_drag_target(node)" @dragging_ref="dragging_ref"/>
+                <nicegui-kanban_card_sfc 
+                        :draggable="!node_is_detached(node)" :class="card_classes(node)" 
+                        :card="node.card" :detached="node_is_detached(node)" 
+                        :dragged="node_is_drag_target(node)" 
+                        @dragging_ref="dragging_ref" @open_link="open_link"/>
                 <div v-if="node.children.length>0 && !(node.card.detached && this.depth>0 &&!this.detached_parent)" class="nicegui-row items-stretch gap-0 mt-[-3pt]">
                     <q-btn :class="toggle_btn_classes(node)" @click="(evt)=>toggle_expand(node)">{{toggle_btn_text(node)}}</q-btn>
                     <nicegui-kanban_list_sfc v-if="node.expanded && !node.dragged" 
-                            class="grow" :parent_id="node.id" :nodes="node.children" :depth="depth+1" :detached_parent="false"
+                            class="grow" :parent_id="node.id" :nodes="node.children" 
+                            :depth="depth+1" :detached_parent="false"
                             @toggle_expand="toggle_expand" 
                             @dragging_ref="dragging_ref"
-                            @dragstart_card="dragstart_card"/>
+                            @dragstart_card="dragstart_card"
+                            @open_link="open_link"/>
                 </div>
             </template>            
         </div>
@@ -121,6 +131,9 @@ export default {
         },
         dragging_ref(ref) {
             this.$emit("dragging_ref", ref)
+        },
+        open_link(val) {
+            this.$emit("open_link", val)
         }
     },
     props: {

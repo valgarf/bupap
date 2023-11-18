@@ -11,7 +11,8 @@
                             :detached_parent="false" :ref="lane.id"
                             @toggle_expand="toggle_expand" 
                             @dragging_ref="dragging_ref"
-                            @dragstart_card="dragstart_card"/>
+                            @dragstart_card="dragstart_card"
+                            @open_link="open_link"/>
                 </div>
             </q-scroll-area>
         </q-card>
@@ -33,9 +34,9 @@ export default {
         }
     },
     methods: {
-        // open_link(val) {
-        //     console.log(val);
-        // },
+        open_link(val) {
+            this.$emit("open_link", val);
+        },
 
         compute_kanban(initial_data) {
             let nodes = {}

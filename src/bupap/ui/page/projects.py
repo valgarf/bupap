@@ -166,6 +166,12 @@ def create_projects_page():
 
         kanban.on("moved_cards", moved_cards)
 
+        def open_link(evt):
+            task_id = evt.args["id"]
+            Router.get().open(f"/task/{task_id}/Overview")
+
+        kanban.on("open_link", open_link)
+
         # with ui.row().classes("p-4 overflow-x-auto grow flex-nowrap items-stretch"):
         #     for state in db.TaskState:
         #         tasks = [t for t in project.tasks if t.task_state == state]

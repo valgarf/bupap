@@ -1,6 +1,13 @@
 <template>
-    <q-card ref="card" class="nicegui-card" flat="this.detached" :bordered="this.detached" :class="classes()" @click="open_link(card)">
-        <div class="text-base font-bold select-none">{{card.title}}</div>
+    <q-card ref="card" class="nicegui-card" flat="this.detached" :bordered="this.detached" :class="classes()">
+        <q-btn flat no-caps @click="open_link(card)" class="m-0 px-1 py-0 p-0">
+            <div class="row items-center no-wrap text-base font-bold select-none">
+                <div class="text-center">
+                {{card.title}}
+                </div>
+                <q-icon right name="launch" color="neutral-400" size="1em"/>
+            </div>            
+        </q-btn>
         <div v-if="!this.detached" class="nicegui-row">
             <q-badge v-for="tag in card.tags" :key="card.id+tag.text+tag.color" :color="tag.color" :text-color="tag.text_color" class="p-1 m-1 select-none">{{tag.text}}</q-badge>
         </div>
@@ -34,7 +41,7 @@ export default {
             }
         },
         open_link(val) {
-            console.log(val);
+            this.$emit("open_link", val)
         },
         classes() {
             if (this.detached) {
