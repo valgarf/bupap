@@ -30,6 +30,7 @@ def create_task(task: NewTask, external_session: db.Session | None = None):
     if not task.name:
         raise RuntimeError("Incomplete data to create a project.")
     with db.use_or_open_session(external_session) as session:
+        session.flush()
         db_project = get_from_id(session, db.Project, task.project_id)
         db_parent = None
         if task.parent_id is not None:
@@ -44,13 +45,34 @@ def create_task(task: NewTask, external_session: db.Session | None = None):
             project=db_project,
             parent=db_parent,
             automatic_schedule=True,
-            task_state=db.TaskState.REQUEST,
+            task_state=None,  # Note: fixed before added to session
             task_type=task.task_type,
             task_priority=task.priority,
             created_at=task.created_at,
+            order_id=None,  # Note: fixed before added to session
         )
+
+        def _recursive_children(task: NewTask, db_task: db.Task):
+            for ctask in task.children:
+                db_child_task = db.Task(
+                    name=ctask.name,
+                    description=ctask.description,
+                    project=db_project,
+                    parent=db_task,
+                    automatic_schedule=True,
+                    task_state=None,  # Note: fixed before added to session
+                    task_type=ctask.task_type,
+                    task_priority=ctask.priority,
+                    created_at=ctask.created_at,
+                    order_id=None,  # Note: fixed before added to session
+                    attached=True,  # Otherwise it will only be set on flush
+                )
+                _recursive_children(ctask, db_child_task)
+
+        _recursive_children(task, db_task)
+        set_task_state(db_task, db.TaskState.REQUEST, session=session)
         session.add(db_task)
-        return return_obj_or_id(external_session, session, db_task)
+        return return_obj_or_id(external_session, session, db_task, always_flush=True)
 
 
 def estimate_task(estimate: NewEstimate, external_session: db.Session | None = None):
@@ -95,8 +117,6 @@ def estimate_task(estimate: NewEstimate, external_session: db.Session | None = N
         # TODO: set 'active' estimate for multiple estimates (gut feeling vs. throught through)
 
         session.add(db_estimate)
-        if db_task.task_state == db.TaskState.REQUEST:
-            set_task_state(db_task, db.TaskState.PLANNING)
 
 
 def _recursive_attached(db_task, cb: Callable[[db.Task], None]):
@@ -122,6 +142,7 @@ def task_done(task: TaskDone, external_session: db.Session | None = None):
             t.finished_at = task.finished_at
 
         _recursive_attached(db_task, set_finished)
+        session.flush()
 
 
 @overload
@@ -139,11 +160,7 @@ def get_next_tasks(user_id: int, num_tasks: int, external_session: db.Session | 
         db_tasks = session.scalars(
             sa.Select(db.Task)
             .where(db.Task.scheduled_assignee_id == user_id)
-            .where(
-                db.Task.task_state.in_(
-                    [db.TaskState.IN_PROGRESS, db.TaskState.PLANNING, db.TaskState.SCHEDULED]
-                )
-            )
+            .where(db.Task.task_state.in_([db.TaskState.PLANNING, db.TaskState.SCHEDULED]))
             .order_by(db.Task.order_id)
             .limit(num_tasks)
         ).all()

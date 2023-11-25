@@ -1,5 +1,7 @@
+import cProfile
 import logging
 import os
+import pstats
 import secrets
 import subprocess
 import sys
@@ -42,6 +44,17 @@ def initialise_database():
     db.check_db_defaults(settings.initial_admin_password)
     if settings.testdata:
         add_testdata()
+        # ## Profiling testdata creation:
+        # with cProfile.Profile() as pr:
+        #     add_testdata()
+        # profile_path = Path(settings.pkg_root).parent.parent / "prof"
+        # profile_path.mkdir(exist_ok=True, parents=True)
+        # pr.dump_stats(str(profile_path / "testdata.prof"))
+        # with open(profile_path / "testdata.cum.prof", "w") as fout:
+        #     sortby = pstats.SortKey.CUMULATIVE
+        #     ps = pstats.Stats(pr, stream=fout).sort_stats(sortby)
+        #     ps.print_stats()
+        # exit(0)
 
 
 def initialise_injection():
@@ -89,22 +102,22 @@ def run():
             # could not reach frontend (client not yet connected?)
             logger.opt(exception=exc).error("Failed to display exception to user:")
         raise HTTPException(status_code=500, detail="Internal server error")
-    
+
     page.create_all_pages()
     path_pkg_root = Path(settings.pkg_root)
     if settings.editable and Path.cwd() in path_pkg_root.parents:
         # NOTE: uvicorn ALWAYS includes the current working directory in reload dirs, regardless
-        # of our configuration. We change the CWD to exclude the large .git folder that causes 
+        # of our configuration. We change the CWD to exclude the large .git folder that causes
         # problems for file watchers
-        os.chdir(path_pkg_root) 
+        os.chdir(path_pkg_root)
     ui.run(
         port=settings.port,
         title="bupap",
         host=settings.host,
         show=settings.show,
         binding_refresh_interval=10,
-        reload=settings.editable, # only reload in editable mode
-        uvicorn_reload_dirs = settings.pkg_root
+        reload=settings.editable,  # only reload in editable mode
+        uvicorn_reload_dirs=settings.pkg_root,
     )
 
 

@@ -28,7 +28,7 @@ def start_work_period(
             db_work_period = db.WorkPeriodTask(task=db_task)
             db_prev_work_period = db_user.active_work_period
             db_user.interrupted_task = None
-            set_task_state(db_task, db.TaskState.IN_PROGRESS)
+            # set_task_state(db_task, db.TaskState.IN_PROGRESS)
         elif isinstance(work, TimesinkStart):
             db_timesink = get_from_id(session, db.Timesink, work.timesink_id)
             db_work_period = db.WorkPeriodTimesink(timesink=db_timesink)

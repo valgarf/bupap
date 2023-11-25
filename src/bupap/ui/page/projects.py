@@ -150,8 +150,7 @@ def create_projects_page():
                         idx += 1
                         rc.task_state = state
                         lane_order.insert(idx, rc)
-
-                for idx, t in enumerate(lane_order, start=1):
+                for idx, t in enumerate(lane_order, start=0):
                     # msg = f"{t.id}: {t.order_id} -> {idx}"
                     t.order_id = idx
 
@@ -161,6 +160,7 @@ def create_projects_page():
                     # msg += f" {t.name}"
                     # print(msg)
                 # session.rollback()
+                # TODO: do we need to close the gaps in the order id in the source lane?
 
             # print(data)
 
@@ -171,20 +171,3 @@ def create_projects_page():
             Router.get().open(f"/task/{task_id}/Overview")
 
         kanban.on("open_link", open_link)
-
-        # with ui.row().classes("p-4 overflow-x-auto grow flex-nowrap items-stretch"):
-        #     for state in db.TaskState:
-        #         tasks = [t for t in project.tasks if t.task_state == state]
-        #         with ui.card().classes("min-w-[350pt] items-stretch"):
-        #             ui.label(state.name).classes("font-bold text-xl mt-5")
-        #             with ui.element("q-scroll-area").classes("m-0 p-0 pr-2 max-w-[330] grow"):
-        #                 with ui.column().classes("p-0 m-1 gap-2 items-stretch"):
-        #                     for task in tasks:
-        #                         with ui.card().classes("hover:bg-slate-200 cursor-pointer").on(
-        #                             "click", partial(Router.get().open, f"/task/{task.id}/Overview")
-        #                         ):
-        #                             ui.label(task.name).classes("text-base font-bold select-none")
-        #                             with ui.row():
-        #                                 ui.badge(task.task_priority.name, color="green").classes(
-        #                                     "p-1 m-1 select-none"
-        #                                 )

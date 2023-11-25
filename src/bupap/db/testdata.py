@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import datetime, time, timedelta
+from itertools import groupby
 from random import choice, randint, random, sample, seed
 from typing import cast
 
@@ -7,6 +8,7 @@ import sqlalchemy as sa
 import sqlalchemy.orm
 from loguru import logger
 
+from bupap.ui.crud.common import set_tasks_state
 from bupap.ui.crud.project import assign_project_role, create_project
 from bupap.ui.crud.task import (
     create_task,
@@ -42,6 +44,7 @@ from . import (
     ScheduleRule,
     Task,
     TaskPriority,
+    TaskState,
     TaskType,
     Team,
     Timesink,
@@ -164,6 +167,7 @@ class TestdataState:
 
 
 TOOL_SUBPROJECTS = ["debugger", "metrics", "build tools", "deployment", "testing tools"]
+DAYS = 30
 
 
 def add_testdata(end: datetime = None):
@@ -267,7 +271,7 @@ def add_testdata(end: datetime = None):
         # start
         if end is None:
             end = datetime.utcnow()
-        start = end.date() - timedelta(days=30)  # 365*2)
+        start = end.date() - timedelta(days=DAYS)  # 365*2)
         start -= timedelta(days=start.weekday())
         start = datetime.combine(start, time(hour=8))
 
@@ -383,6 +387,7 @@ def add_testdata(end: datetime = None):
                     )
 
             new_schedule_necessary = False
+            tasks_update_state = []
             for db_dev in list(unassigned_devs):
                 to_plan = invert_unplanned.get(db_dev.id)
                 if to_plan:
@@ -405,12 +410,21 @@ def add_testdata(end: datetime = None):
                             ),
                             external_session=session,
                         )
+                        db_task = session.get(Task, db_task_id)
+                        if db_task.task_state == TaskState.REQUEST:
+                            tasks_update_state.append(db_task)
+
                     start_work_period(
                         TimesinkStart(db_timesink_planning.id, db_dev.id, state.current),
                         external_session=session,
                     )
-
                     invert_unplanned[db_dev.id] = []
+
+            if tasks_update_state:
+                keyf = lambda el: el.project.id
+                for project_id, tasks in groupby(sorted(tasks_update_state, key=keyf), key=keyf):
+                    set_tasks_state(list(tasks), TaskState.PLANNING)
+                session.flush()
 
             if new_schedule_necessary:
                 run_auto_scheduling(
@@ -576,9 +590,7 @@ def generate_task_for_project(state: TestdataState, db_projects: list[Project]):
                 name,
                 description="Task should be clear from name.",
             )
-    db_task = create_task(task, external_session=state.session)
     if random() > 0.8:
-        state.session.flush()
         for i in range(3):
             subtask = NewTask(
                 task.project_id,
@@ -587,11 +599,9 @@ def generate_task_for_project(state: TestdataState, db_projects: list[Project]):
                 state.current,
                 f"Subtask {i}",
                 f"step {i}",
-                parent_id=db_task.id,
             )
-            db_subtask = create_task(subtask, external_session=state.session)
+            task.children.append(subtask)
             if random() > 0.5:
-                state.session.flush()
                 for j in range(3):
                     subsubtask = NewTask(
                         task.project_id,
@@ -600,10 +610,21 @@ def generate_task_for_project(state: TestdataState, db_projects: list[Project]):
                         state.current,
                         f"Sub-Subtask {i}/{j}",
                         f"step {i}/{j}",
-                        parent_id=db_subtask.id,
                     )
-                    create_task(subsubtask, external_session=state.session)
-    state.session.flush()
+                    subtask.children.append(subsubtask)
+    db_task = create_task(task, external_session=state.session)
+    # from bupap import db
+    # tasks = state.session.scalars(
+    #     sa.select(db.Task)
+    #     .where(db.Task.project == db_task.project)
+    #     .where(db.Task.task_state == db_task.task_state)
+    #     .order_by(db.Task.order_id)
+    # )
+    # print(f"Task state on proj {db_task.project.name} / {db_task.task_state.name}")
+    # for t in tasks:
+    #     snew = " - NEW" if t == db_task or t in db_task.get_recursive_children() else ""
+    #     print(f"{t.task_priority.name}{snew} - {t.name}")
+
     users = []
     if db_proj in state.projects.frontend:
         users.extend(sample(state.users.frontend_devs, 3))

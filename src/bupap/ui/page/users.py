@@ -105,7 +105,7 @@ def create_users_page():
                 if wp.duration is not None:
                     data["total_duration"] += wp.duration
                 if wp.task.task_state in [
-                    db.TaskState.IN_PROGRESS,
+                    # db.TaskState.IN_PROGRESS,
                     db.TaskState.PLANNING,
                     db.TaskState.SCHEDULED,
                 ]:
