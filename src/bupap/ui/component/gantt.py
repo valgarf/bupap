@@ -103,7 +103,7 @@ class Gantt(ui.element, component="gantt_sfc.vue"):
                 self._get_data(GanttMode.DAY, start, end, user_data), start, end
             ),
         )
-        self.on("open_item", lambda evt: open_item(evt["args"]))
+        self.on("open_item", lambda evt: open_item(evt.args))
 
     def set_day(self, day: date):
         start = datetime.combine(day, time(0, 0))
