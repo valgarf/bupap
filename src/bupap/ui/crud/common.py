@@ -94,6 +94,7 @@ def set_tasks_state(
 
     index_map = {}
     prio_cache = {}
+    db_tasks.sort(key=lambda t: t.task_priority.value)
     for db_task in db_tasks:
         if db_task.attached and db_task.parent is not None and db_task.parent.task_state != state:
             db_task.attached = False
