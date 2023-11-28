@@ -374,9 +374,9 @@ def add_testdata(end: datetime = None):
                         TaskStart(db_task.id, db_dev.id, state.current), external_session=session
                     )
                     unassigned_devs.remove(db_dev)
-                    db_estimate = get_estimate(db_dev, db_task)
-                    assert db_estimate is not None
-                    duration = db_estimate.estimated_duration * (random() + 0.8)
+                    estimate = get_estimate(db_dev, db_task)
+                    assert estimate is not None
+                    duration = estimate.estimated_duration * (random() + 0.8)
                     events.append(
                         {
                             "at": state.current + duration,

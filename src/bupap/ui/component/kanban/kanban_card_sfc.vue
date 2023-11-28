@@ -8,6 +8,33 @@
                 <q-icon right name="launch" color="neutral-400" size="1em"/>
             </div>            
         </q-btn>
+        <div v-if="this.progress != null" class="nicegui-row items-center w-full gap-1 pl-1">
+            <span class="h-2 w-2 rounded-full" :class="{ invisible: !this.active }" style="display:inline-block;background-color:#67FFAE"></span>
+            <svg v-if="this.progress != null" ref="progress" version="1.1"
+            width="50%" height="4"
+            viewBox="0 0 100 10"
+            preserveAspectRatio="none"
+            xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="Gradient1">
+                <stop stop-color="#67FFAE" offset="0%" />
+                <stop stop-color="#67A9FF" offset="100%" />
+                </linearGradient>
+                <linearGradient id="Gradient2">
+                <stop stop-color="#67A9FF" offset="0%" />
+                <stop stop-color="grey" offset="100%" />
+                </linearGradient>
+            </defs>
+            <rect x="0" y="0" width="100" height="10" fill="grey"/>
+            <rect x="0" y="0" :width="progress[0]" height="10" fill="#67FFAE"/>
+            <rect :x="progress[0]" y="0" :width="progress[1]-progress[0]" height="10" style="fill:url(#Gradient1);stroke-width:0;"/>
+            <rect :x="progress[1]" y="0" :width="progress[2]-progress[1]" height="10" style="fill:url(#Gradient2);stroke-width:0;"/>
+            <!-- <rect :x="progress[1]-1" y="0" :width="2" height="10" style="fill:yellow;stroke-width:0;"/> -->
+            </svg>
+            <div>
+                ~{{this.progress[1]}}% ({{this.progress[0]}}% - {{this.progress[2]}}%)
+            </div>
+        </div>
         <div v-if="!this.detached" class="nicegui-row">
             <q-badge v-for="tag in card.tags" :key="card.id+tag.text+tag.color" :color="tag.color" :text-color="tag.text_color" class="p-1 m-1 select-none">{{tag.text}}</q-badge>
         </div>
@@ -29,6 +56,17 @@ export default {
     },
     updated() {
         this.check_dragged()
+    },
+    computed: {
+        progress() {
+            if (this.card.progress == null) {
+                return null
+            }
+            return [Math.round(this.card.progress[0]), Math.round(this.card.progress[1]),Math.round(this.card.progress[2])]
+        },
+        active() {
+            return this.card.active
+        }
     },
     methods: {
         check_dragged() {

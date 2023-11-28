@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from functools import partial
 
 import sqlalchemy as sa
@@ -16,6 +17,7 @@ from bupap.ui import component
 from bupap.ui.common import Tree, TreeNode, get_user
 from bupap.ui.component import RequestInfo, Router, project_tree
 from bupap.ui.component.kanban import Kanban, KanbanCardData, KanbanData, KanbanLaneData, KanbanTag
+from bupap.ui.crud.task import get_estimate
 
 # from bupap.ui.component.kanban_card import KanbanCard
 
@@ -78,6 +80,24 @@ def create_projects_page():
             tasks = [t for t in project.tasks if t.task_state == state]
             tasks.sort(key=lambda t: t.order_id or 0)
             for t in tasks:
+                active = False
+                progress = None
+                if t.scheduled_assignee and t.finished_at is None:
+                    total_work = timedelta(0)
+                    for wp in t.work_periods:
+                        if wp.ended_at:
+                            total_work += wp.duration
+                        else:
+                            active = True
+                    if total_work:
+                        est = get_estimate(t.scheduled_assignee, t)
+                        progress = (
+                            total_work / est.expectation_pessimistic,
+                            total_work / est.expectation_average,
+                            total_work / est.expectation_optimistic,
+                        )
+                        progress = tuple(int(min(p, 1) * 100) for p in progress)
+
                 card = KanbanCardData(
                     title=t.name,
                     id=t.id,
@@ -92,6 +112,8 @@ def create_projects_page():
                         )
                     ],
                     detached=not t.attached,
+                    progress=progress,
+                    active=active,
                     link=True,
                 )
                 lane.card_order.append(card.id)

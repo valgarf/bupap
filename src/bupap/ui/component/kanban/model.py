@@ -19,6 +19,8 @@ class KanbanCardData:
     children_order: list[str] = field(default_factory=list)
     lane_id: str | None = None
     parent_id: str | None = None
+    progress: tuple[float, float, float] | None = None
+    active: bool = False
 
 
 @dataclass

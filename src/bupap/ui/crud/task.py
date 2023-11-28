@@ -80,9 +80,6 @@ def estimate_task(estimate: NewEstimate, external_session: db.Session | None = N
         db_task = get_from_id(session, db.Task, estimate.task_id)
         db_user = get_from_id(session, db.User, estimate.user_id)
         db_estimate_type = get_from_id(session, db.EstimateType, estimate.estimate_type_id)
-        est = get_estimate(db_user, db_task)
-        if est is not None:
-            breakpoint()
         # TODO: calc expectation
         db_statistics = [
             es for es in db_user.estimate_statistics if es.estimate_type_id == db_estimate_type.id
@@ -406,9 +403,60 @@ def _add_task_next(
     # db_task.scheduled_average_end = last_end + db_estimate.
 
 
-def get_estimate(db_user: db.User, db_task: db.Task):
+@dataclass
+class Estimate:
+    ids: list[int]
+    created_at: datetime
+    estimated_duration: timedelta
+    expectation_optimistic: timedelta
+    expectation_pessimistic: timedelta
+    expectation_average: timedelta
+    task: db.Task
+    user: db.User
+
+    @classmethod
+    def from_db_estimate(cls, value: db.Estimate):
+        return cls(
+            ids=[value.id],
+            created_at=value.created_at,
+            estimated_duration=value.estimated_duration,
+            expectation_optimistic=value.expectation_optimistic,
+            expectation_pessimistic=value.expectation_pessimistic,
+            expectation_average=value.expectation_average,
+            task=value.task,
+            user=value.user,
+        )
+
+    @classmethod
+    def combine(cls, task: db.Task, values: list[db.Estimate]):
+        users = {v.user for v in values}
+        assert len(users) == 1
+
+        return cls(
+            ids=[el for v in values for el in v.ids],
+            created_at=max(v.created_at for v in values),
+            estimated_duration=sum(v.estimated_duration for v in values),
+            expectation_optimistic=sum(v.expectation_optimistic for v in values),
+            expectation_pessimistic=sum(v.expectation_pessimistic for v in values),
+            expectation_average=sum(v.expectation_average for v in values),
+            task=task,
+            user=list(users)[0],
+        )
+
+
+def get_estimate(db_user: db.User, db_task: db.Task, recursive: bool = True) -> Estimate:
     db_estimates = [e for e in db_task.estimates if e.user_id == db_user.id]
-    return max(db_estimates, key=lambda e: e.created_at, default=None)
+    result = max(db_estimates, key=lambda e: e.created_at, default=None)
+    if result is not None:
+        result = Estimate.from_db_estimate(result)
+
+    if recursive and db_task.children:
+        child_estimates = [get_estimate(db_user, c, True) for c in db_task.children]
+        if all(ce is not None for ce in child_estimates) and (
+            result is None or any(ce.created_at > result.created_at for ce in child_estimates)
+        ):
+            result = Estimate.combine(db_task, child_estimates)
+    return result
 
 
 def run_auto_scheduling(now: datetime | None, external_session: db.Session | None = None):

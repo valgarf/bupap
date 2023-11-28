@@ -51,7 +51,7 @@ def create_tasks_page():
                 with ui.column().classes("gap-0"):
                     estimate = get_estimate(task.scheduled_assignee, task)
                     logger.warning(
-                        f"{estimate.id=}, {estimate.user_id=}, {estimate.task_id=}\n    {estimate.expectation_optimistic=}\n    {estimate.expectation_average=}\n    {estimate.expectation_pessimistic=}"
+                        f"{estimate.ids=}, {estimate.user.id=}, {estimate.task.id=}\n    {estimate.expectation_optimistic=}\n    {estimate.expectation_average=}\n    {estimate.expectation_pessimistic=}"
                     )
                     s_end_opt = format_date(task.scheduled_optimistic_end)
                     s_end_pes = format_date(task.scheduled_pessimistic_end)
@@ -71,11 +71,9 @@ def create_tasks_page():
                     now = datetime.utcnow()
                     work = timedelta()
                     for wp in task.work_periods:
-                        work += ((wp.ended_at or now) - wp.started_at)
+                        work += (wp.ended_at or now) - wp.started_at
                     s_work = format_timedelta(work)
-                    lwork = ui.label(
-                        f"Spent time: {s_work}"
-                    )
+                    lwork = ui.label(f"Spent time: {s_work}")
                     now = datetime.utcnow()
                     lest.classes("text-base")
                     ldur.classes("text-base")
@@ -85,9 +83,7 @@ def create_tasks_page():
                 users = {}
                 for wp in task.work_periods:
                     if wp.ended_at:
-                        work[wp.user_id] = wp.duration + work.get(
-                            wp.user_id, timedelta()
-                        )
+                        work[wp.user_id] = wp.duration + work.get(wp.user_id, timedelta())
                         users[wp.user_id] = wp.user
                 columns = [
                     {
@@ -182,17 +178,23 @@ def create_tasks_page():
                     fig.add_trace(go.Scatter(x=x, y=y, line=dict(color="#646464"), name="average"))
                     fig.add_vline(x=task.created_at, line_width=3, line_color="#646464")
                     for wp in task.work_periods:
-                        fig.add_vrect(x0=wp.started_at, x1=wp.ended_at or now, line_width=0, fillcolor="#9181fa", opacity=0.3)
+                        fig.add_vrect(
+                            x0=wp.started_at,
+                            x1=wp.ended_at or now,
+                            line_width=0,
+                            fillcolor="#9181fa",
+                            opacity=0.3,
+                        )
                     fig.update_layout(
                         margin=dict(l=0, r=0, t=0, b=0),
                         xaxis_range=[xaxis_min, xaxis_max],
                         yaxis_range=[yaxis_min, yaxis_max],
                         showlegend=False,
-                        hovermode="closest"
+                        hovermode="closest",
                     )
                     # def ic_args(event):
-                        # ic(event)
-                    CPlotly(fig).classes("w-full h-40") # .on("data_click", ic_args)
+                    # ic(event)
+                    CPlotly(fig).classes("w-full h-40")  # .on("data_click", ic_args)
                 # ui.label("@" + shown_team.name).classes("text-slate-500")
 
     def _task_page_activity(session: sa.orm.Session, task: db.Task):
