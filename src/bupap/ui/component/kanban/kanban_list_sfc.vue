@@ -6,12 +6,13 @@
             <template v-if="node.card.detached && this.depth==0">
                 <nicegui-kanban_card_sfc 
                         class="mt-0" :class="card_classes(node.parent)" :card="node.parent.card" 
-                        :detached="true" :dragged="false" @open_link="open_link"/>
+                        :detached="true" :dragged="false" :priorities="this.priorities"
+                        @open_link="open_link"/>
                 <div class="nicegui-row items-stretch gap-0 mt-[-3pt]">
                     <div class="w-10" ></div>
                     <nicegui-kanban_list_sfc 
                             class="grow" :parent_id="node.parent.id" :nodes="[node]" 
-                            :depth="depth+1" :detached_parent="true"
+                            :depth="depth+1" :detached_parent="true" :priorities="this.priorities"
                             @toggle_expand="toggle_expand" 
                             @dragging_ref="dragging_ref"
                             @dragstart_card="dragstart_card"
@@ -22,13 +23,13 @@
                 <nicegui-kanban_card_sfc 
                         :draggable="!node_is_detached(node)" :class="card_classes(node)" 
                         :card="node.card" :detached="node_is_detached(node)" 
-                        :dragged="node_is_drag_target(node)" 
+                        :dragged="node_is_drag_target(node)" :priorities="this.priorities"
                         @dragging_ref="dragging_ref" @open_link="open_link"/>
                 <div v-if="node.children.length>0 && !(node.card.detached && this.depth>0 &&!this.detached_parent)" class="nicegui-row items-stretch gap-0 mt-[-3pt]">
                     <q-btn :class="toggle_btn_classes(node)" @click="(evt)=>toggle_expand(node)">{{toggle_btn_text(node)}}</q-btn>
                     <nicegui-kanban_list_sfc v-if="node.expanded && !node.dragged" 
                             class="grow" :parent_id="node.id" :nodes="node.children" 
-                            :depth="depth+1" :detached_parent="false"
+                            :depth="depth+1" :detached_parent="false" :priorities="this.priorities"
                             @toggle_expand="toggle_expand" 
                             @dragging_ref="dragging_ref"
                             @dragstart_card="dragstart_card"
@@ -49,7 +50,8 @@ export default {
             parent_id: this.parent_id,
             nodes: this.nodes,
             depth: this.depth,
-            detached_parent: this.detached_parent
+            detached_parent: this.detached_parent,
+            priorities: this.priorities
         }
     },
     methods: {
@@ -141,6 +143,7 @@ export default {
         nodes: null,
         depth: 0,
         detached_parent: false,
+        priorities: null
     }
 }
 </script>

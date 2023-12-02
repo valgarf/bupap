@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from functools import partial
 
 import sqlalchemy as sa
@@ -17,7 +17,7 @@ from bupap.ui import component
 from bupap.ui.common import Tree, TreeNode, get_user
 from bupap.ui.component import RequestInfo, Router, project_tree
 from bupap.ui.component.kanban import Kanban, KanbanCardData, KanbanData, KanbanLaneData, KanbanTag
-from bupap.ui.crud.task import get_estimate
+from bupap.ui.crud.task import TaskDone, get_estimate, task_done
 
 # from bupap.ui.component.kanban_card import KanbanCard
 
@@ -73,12 +73,27 @@ def create_projects_page():
     def _project_page_tasks(session: sa.orm.Session, project: db.Project):
         pass
         data = KanbanData()
+        for prio in db.TaskPriority:
+            data.priorities.append(
+                KanbanTag(
+                    prio.text,
+                    prio.default_color,
+                    prio.default_text_color,
+                )
+            )
         for state in db.TaskState:
             lane = KanbanLaneData(state.name, state.name)
             data.lanes[lane.id] = lane
             data.lane_order.append(lane.id)
+            if state in [db.TaskState.REQUEST, db.TaskState.PLANNING, db.TaskState.SCHEDULED]:
+                lane.priority_sorted = True
+            if state in [db.TaskState.DONE, db.TaskState.DONE]:
+                lane.finished_sorted = True
             tasks = [t for t in project.tasks if t.task_state == state]
-            tasks.sort(key=lambda t: t.order_id or 0)
+            if not lane.finished_sorted:
+                tasks.sort(key=lambda t: t.order_id or 0)
+            else:
+                tasks.sort(key=lambda t: t.finished_at, reverse=True)
             for t in tasks:
                 active = False
                 progress = None
@@ -97,24 +112,19 @@ def create_projects_page():
                             total_work / est.expectation_optimistic,
                         )
                         progress = tuple(int(min(p, 1) * 100) for p in progress)
-
                 card = KanbanCardData(
                     title=t.name,
                     id=t.id,
                     lane_id=lane.id,
                     parent_id=t.parent_id,
                     depth=0,
-                    tags=[
-                        KanbanTag(
-                            t.task_priority.text,
-                            t.task_priority.default_color,
-                            t.task_priority.default_text_color,
-                        )
-                    ],
+                    tags=[],
                     detached=not t.attached,
                     progress=progress,
                     active=active,
+                    priority=t.task_priority.text,
                     link=True,
+                    finished_at=t.finished_at,
                 )
                 lane.card_order.append(card.id)
                 data.cards[card.id] = card
@@ -181,6 +191,22 @@ def create_projects_page():
                         t.attached = not tasks[t.id][1]
                     # msg += f" {t.name}"
                     # print(msg)
+                if state in [db.TaskState.DONE, db.TaskState.DISCARDED]:
+                    for tdata in changed_tasks:
+                        tdone = TaskDone(tdata[2].id, datetime.now(UTC))
+                        task_done(tdone, session, discarded=(state == db.TaskState.DISCARDED))
+                else:
+                    # TODO wrap in crud function
+                    def _unset_finished(t):
+                        if t.finished_at is not None:
+                            t.finished_at = None
+                        for c in t.children:
+                            if c.attached:
+                                _unset_finished(c)
+
+                    for tdata in changed_tasks:
+                        _unset_finished(tdata[2])
+
                 # session.rollback()
                 # TODO: do we need to close the gaps in the order id in the source lane?
 

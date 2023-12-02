@@ -8,7 +8,7 @@
                 <div class="p-2">
                     <nicegui-kanban_list_sfc 
                             :parent_id="null" :nodes="lane.top_level_nodes" :depth="0" 
-                            :detached_parent="false" :ref="lane.id"
+                            :detached_parent="false" :ref="lane.id" :priorities="this.kanban.priorities"
                             @toggle_expand="toggle_expand" 
                             @dragging_ref="dragging_ref"
                             @dragstart_card="dragstart_card"
@@ -95,7 +95,8 @@ export default {
             for (let [k,v] of Object.entries(initial_data.lanes)) {
                 let all_nodes = v.card_order.map((cid) => nodes[cid])
 
-                let lane = {id: v.id, title: v.title, top_level_nodes: [],
+                let lane = {id: v.id, title: v.title, finished_sorted: v.finished_sorted, priority_sorted: v.priority_sorted,
+                    top_level_nodes: [],
                     get nodes() {
                         let result = []
                         for (let n of this.top_level_nodes) {
@@ -113,7 +114,7 @@ export default {
 
             let lane_order = this.initial_data.lane_order.map((lid) => lanes[lid])
 
-            return {nodes, lanes, lane_order}
+            return {nodes, lanes, lane_order, priorities: initial_data.priorities}
         },
         toggle_expand(node) {
             var n = this.nodes[node.id]
@@ -147,6 +148,9 @@ export default {
             }
             if (this.dragged.nodes.every((node) => node.lane.id == lane.id))
             {
+                if (lane.finished_sorted) {
+                    return
+                }
                 for (let node of this.dragged.nodes) {
                     if (up) {
                         this.move_up(node, y);
@@ -170,32 +174,45 @@ export default {
                 node.lane.top_level_nodes.splice(index, 1)
             }
             // try to find correct index
-            let index = -1
-            let child_idx = 0
-            let children = this.$refs[lane.id][0]._.subTree.el.children // depends on layout!
-            for (const child of children) 
-            {
-                if (child.getBoundingClientRect().top > y){
-                    index = child_idx
-                    break
+            if (lane.finished_sorted) {
+                if (node.parent?.lane.id == lane.id) {
+                    node.detached=false
                 }
-                child_idx += 1
-            }
-            if (index == -1) {
-                lane.top_level_nodes.push(node)
+                else {
+                    lane.top_level_nodes.splice(0, 0, node)
+                    node.detached = node.parent != null
+                }
+                node.lane = lane
             }
             else {
-                lane.top_level_nodes.splice(index, 0, node)
-            }
-            node.detached = node.parent != null
-            node.lane = lane
+                let index = -1
+                let child_idx = 0
+                let children = this.$refs[lane.id][0]._.subTree.el.children // depends on layout!
+                for (const child of children) 
+                {
+                    if (child.getBoundingClientRect().top > y){
+                        index = child_idx
+                        break
+                    }
+                    child_idx += 1
+                }
+                if (index == -1) {
+                    lane.top_level_nodes.push(node)
+                }
+                else {
+                    lane.top_level_nodes.splice(index, 0, node)
+                }
+            
+                node.detached = node.parent != null
+                node.lane = lane
 
-            this.dragged.blocked = true;
-            this.$nextTick(() => {
+                this.dragged.blocked = true;
                 this.$nextTick(() => {
-                    this.move_up(node, y)
+                    this.$nextTick(() => {
+                        this.move_up(node, y)
+                    })
                 })
-            })
+            }
         },
         move_up(node, y) {
             this.dragged.blocked = false;

@@ -5,10 +5,11 @@ from typing import Awaitable, Callable, List, Optional
 
 from nicegui import ui
 
+from ...js_libs import PATH_LUXON
 from .model import KanbanCardData
 
 
-class KanbanCard(ui.element, component="kanban_card_sfc.vue"):
+class KanbanCard(ui.element, component="kanban_card_sfc.vue", exposed_libraries=[PATH_LUXON]):
     def __init__(
         self,
         card: KanbanCardData,

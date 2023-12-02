@@ -123,20 +123,25 @@ def _recursive_attached(db_task, cb: Callable[[db.Task], None]):
             _recursive_attached(db_child, cb)
 
 
-def task_done(task: TaskDone, external_session: db.Session | None = None):
+def task_done(task: TaskDone, external_session: db.Session | None = None, discarded: bool = False):
     with db.use_or_open_session(external_session) as session:
         db_task = get_from_id(session, db.Task, task.task_id)
 
+        # TODO: maybe put that into 'set_task_state' for every state != scheduled?
         db_open_work_period = db_task.open_work_period
         if db_open_work_period is not None:
             end_work_period(
                 WorkPeriodEnd(db_open_work_period.id, task.finished_at), external_session=session
             )
 
-        set_task_state(db_task, db.TaskState.DONE)
+        if discarded:
+            set_task_state(db_task, db.TaskState.DISCARDED)
+        else:
+            set_task_state(db_task, db.TaskState.DONE)
 
         def set_finished(t):
-            t.finished_at = task.finished_at
+            if t.finished_at is None:
+                t.finished_at = task.finished_at
 
         _recursive_attached(db_task, set_finished)
         session.flush()

@@ -35,8 +35,11 @@
                 ~{{this.progress[1]}}% ({{this.progress[0]}}% - {{this.progress[2]}}%)
             </div>
         </div>
+        <div v-if="this.finished_at != null">
+            {{this.finished_at}}
+        </div>
         <div v-if="!this.detached" class="nicegui-row">
-            <q-badge v-for="tag in card.tags" :key="card.id+tag.text+tag.color" :color="tag.color" :text-color="tag.text_color" class="p-1 m-1 select-none">{{tag.text}}</q-badge>
+            <q-badge v-for="tag in this.tags" :key="card.id+tag.text+tag.color" :color="tag.color" :text-color="tag.text_color" class="p-1 m-1 select-none">{{tag.text}}</q-badge>
         </div>
     </q-card>
 </template>
@@ -48,7 +51,8 @@ export default {
         return {
             card: this.card,
             detached: this.detached,
-            dragged: this.dragged
+            dragged: this.dragged,
+            priorities: this.priorities
         }
     },
     mounted() {
@@ -66,6 +70,20 @@ export default {
         },
         active() {
             return this.card.active
+        },
+        finished_at() {
+            return luxon.DateTime(this.card.finished_at).toFormat("yyyy-LL-dd HH:mm")
+        },
+        tags () {
+            var tags = [...this.card.tags]
+            if (this.priorities != null) {
+                for (var p of this.priorities) {
+                    if (this.card.priority == p.text) {
+                        tags.splice(0,0,p)
+                    }
+                }
+            }
+            return tags
         }
     },
     methods: {
@@ -94,7 +112,8 @@ export default {
     props: {
         card: null,
         detached: false,
-        dragged: false
+        dragged: false,
+        priorities: null
     }
 }
 </script>

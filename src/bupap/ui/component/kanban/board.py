@@ -10,12 +10,13 @@ from typing import Any, Awaitable, Callable, Dict, List, Optional
 from loguru import logger
 from nicegui import ui
 
+from ...js_libs import PATH_LUXON
 from ..errors import Errors
 from .card import KanbanCard
 from .model import KanbanCardData, KanbanData, KanbanLaneData, KanbanTag
 
 
-class Kanban(ui.element, component="kanban_board_sfc.vue"):
+class Kanban(ui.element, component="kanban_board_sfc.vue", exposed_libraries=[PATH_LUXON]):
     def __init__(
         self,
         data: KanbanData,
