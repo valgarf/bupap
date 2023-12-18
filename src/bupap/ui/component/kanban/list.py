@@ -9,36 +9,16 @@ from typing import Any, Awaitable, Callable, Dict, List, Optional
 
 from loguru import logger
 from nicegui import ui
-from py_ts_interfaces import Interface
 
-from .errors import Errors
-from .kanban_card import KanbanCard, KanbanCardData, KanbanTag
-
-
-@dataclass
-class KanbanLane(Interface):
-    id: str
-    title: str
-    card_order: List[str] = field(default_factory=list)
+from ..errors import Errors
+from .card import KanbanCard
+from .model import KanbanCardData, KanbanData, KanbanLaneData, KanbanTag
 
 
-@dataclass
-class KanbanData(Interface):
-    lanes: Dict[str, KanbanLane] = field(default_factory=dict)
-    cards: Dict[str, KanbanCardData] = field(default_factory=dict)
-    lane_order: List[str] = field(default_factory=list)
-
-    def lane_for_card(self, card: KanbanCardData) -> KanbanLane | None:
-        for l in self.lanes:
-            if l.id == card.lane_id:
-                return l
-        return None
-
-
-class Kanban(ui.element, component="kanban.vue"):
+class KanbanList(ui.element, component="kanban_list_sfc.vue"):
     def __init__(
         self,
-        data: KanbanData,
+        data: list[KanbanCardData],
         on_card_change: Callable[[KanbanCardData | None, KanbanCardData], None | Awaitable[None]]
         | None = None,
         on_open_link: Callable[[KanbanCardData], None | Awaitable[None]] | None = None,
@@ -65,3 +45,10 @@ class Kanban(ui.element, component="kanban.vue"):
         #     result = self._on_change(date.fromisoformat(evt.args))
         #     if isawaitable(result):
         #         await result
+
+
+# <style scoped>
+# nicegui-kanban_card * {
+#     pointer-events: none;
+# }
+# </style>

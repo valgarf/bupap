@@ -105,7 +105,7 @@ def create_users_page():
                 if wp.duration is not None:
                     data["total_duration"] += wp.duration
                 if wp.task.task_state in [
-                    db.TaskState.IN_PROGRESS,
+                    # db.TaskState.IN_PROGRESS,
                     db.TaskState.PLANNING,
                     db.TaskState.SCHEDULED,
                 ]:
@@ -277,11 +277,10 @@ def create_users_page():
                         # TODO: resize expansion size to table?
                         async def on_show(self, *args):
                             logger.info(args)
-                            await ui.run_javascript(
+                            ui.run_javascript(
                                 f"""
                                 getElement({tbl.id}).gridOptions.columnApi.autoSizeAllColumns();
-                            """,
-                                respond=False,
+                            """
                             )
 
                         expansion.on("afterShow", on_show)

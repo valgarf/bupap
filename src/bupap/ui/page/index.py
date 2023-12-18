@@ -7,7 +7,7 @@ import sqlalchemy.orm
 from fastapi import Request
 from fastapi.responses import RedirectResponse
 from loguru import logger
-from nicegui import Client, globals, ui
+from nicegui import Client, ui
 from starlette.middleware.sessions import SessionMiddleware
 
 from bupap.ui.common import client_data, get_user
@@ -18,7 +18,6 @@ def create_index_page():
     @ui.page("/")
     @ui.page("/{_:path}")
     def index_page(request: Request, client: Client):
-        globals.index_client._custom_data = {}
         ui.add_head_html(custom_style)
         user = get_user(request)
         errors = Errors()

@@ -30,6 +30,7 @@ def create_task(task: NewTask, external_session: db.Session | None = None):
     if not task.name:
         raise RuntimeError("Incomplete data to create a project.")
     with db.use_or_open_session(external_session) as session:
+        session.flush()
         db_project = get_from_id(session, db.Project, task.project_id)
         db_parent = None
         if task.parent_id is not None:
@@ -44,13 +45,34 @@ def create_task(task: NewTask, external_session: db.Session | None = None):
             project=db_project,
             parent=db_parent,
             automatic_schedule=True,
-            task_state=db.TaskState.REQUEST,
+            task_state=None,  # Note: fixed before added to session
             task_type=task.task_type,
             task_priority=task.priority,
             created_at=task.created_at,
+            order_id=None,  # Note: fixed before added to session
         )
+
+        def _recursive_children(task: NewTask, db_task: db.Task):
+            for ctask in task.children:
+                db_child_task = db.Task(
+                    name=ctask.name,
+                    description=ctask.description,
+                    project=db_project,
+                    parent=db_task,
+                    automatic_schedule=True,
+                    task_state=None,  # Note: fixed before added to session
+                    task_type=ctask.task_type,
+                    task_priority=ctask.priority,
+                    created_at=ctask.created_at,
+                    order_id=None,  # Note: fixed before added to session
+                    attached=True,  # Otherwise it will only be set on flush
+                )
+                _recursive_children(ctask, db_child_task)
+
+        _recursive_children(task, db_task)
+        set_task_state(db_task, db.TaskState.REQUEST, session=session)
         session.add(db_task)
-        return return_obj_or_id(external_session, session, db_task)
+        return return_obj_or_id(external_session, session, db_task, always_flush=True)
 
 
 def estimate_task(estimate: NewEstimate, external_session: db.Session | None = None):
@@ -58,9 +80,6 @@ def estimate_task(estimate: NewEstimate, external_session: db.Session | None = N
         db_task = get_from_id(session, db.Task, estimate.task_id)
         db_user = get_from_id(session, db.User, estimate.user_id)
         db_estimate_type = get_from_id(session, db.EstimateType, estimate.estimate_type_id)
-        est = get_estimate(db_user, db_task)
-        if est is not None:
-            breakpoint()
         # TODO: calc expectation
         db_statistics = [
             es for es in db_user.estimate_statistics if es.estimate_type_id == db_estimate_type.id
@@ -95,8 +114,6 @@ def estimate_task(estimate: NewEstimate, external_session: db.Session | None = N
         # TODO: set 'active' estimate for multiple estimates (gut feeling vs. throught through)
 
         session.add(db_estimate)
-        if db_task.task_state == db.TaskState.REQUEST:
-            set_task_state(db_task, db.TaskState.PLANNING)
 
 
 def _recursive_attached(db_task, cb: Callable[[db.Task], None]):
@@ -106,22 +123,28 @@ def _recursive_attached(db_task, cb: Callable[[db.Task], None]):
             _recursive_attached(db_child, cb)
 
 
-def task_done(task: TaskDone, external_session: db.Session | None = None):
+def task_done(task: TaskDone, external_session: db.Session | None = None, discarded: bool = False):
     with db.use_or_open_session(external_session) as session:
         db_task = get_from_id(session, db.Task, task.task_id)
 
+        # TODO: maybe put that into 'set_task_state' for every state != scheduled?
         db_open_work_period = db_task.open_work_period
         if db_open_work_period is not None:
             end_work_period(
                 WorkPeriodEnd(db_open_work_period.id, task.finished_at), external_session=session
             )
 
-        set_task_state(db_task, db.TaskState.DONE)
+        if discarded:
+            set_task_state(db_task, db.TaskState.DISCARDED)
+        else:
+            set_task_state(db_task, db.TaskState.DONE)
 
         def set_finished(t):
-            t.finished_at = task.finished_at
+            if t.finished_at is None:
+                t.finished_at = task.finished_at
 
         _recursive_attached(db_task, set_finished)
+        session.flush()
 
 
 @overload
@@ -139,11 +162,7 @@ def get_next_tasks(user_id: int, num_tasks: int, external_session: db.Session | 
         db_tasks = session.scalars(
             sa.Select(db.Task)
             .where(db.Task.scheduled_assignee_id == user_id)
-            .where(
-                db.Task.task_state.in_(
-                    [db.TaskState.IN_PROGRESS, db.TaskState.PLANNING, db.TaskState.SCHEDULED]
-                )
-            )
+            .where(db.Task.task_state.in_([db.TaskState.PLANNING, db.TaskState.SCHEDULED]))
             .order_by(db.Task.order_id)
             .limit(num_tasks)
         ).all()
@@ -389,9 +408,60 @@ def _add_task_next(
     # db_task.scheduled_average_end = last_end + db_estimate.
 
 
-def get_estimate(db_user: db.User, db_task: db.Task):
+@dataclass
+class Estimate:
+    ids: list[int]
+    created_at: datetime
+    estimated_duration: timedelta
+    expectation_optimistic: timedelta
+    expectation_pessimistic: timedelta
+    expectation_average: timedelta
+    task: db.Task
+    user: db.User
+
+    @classmethod
+    def from_db_estimate(cls, value: db.Estimate):
+        return cls(
+            ids=[value.id],
+            created_at=value.created_at,
+            estimated_duration=value.estimated_duration,
+            expectation_optimistic=value.expectation_optimistic,
+            expectation_pessimistic=value.expectation_pessimistic,
+            expectation_average=value.expectation_average,
+            task=value.task,
+            user=value.user,
+        )
+
+    @classmethod
+    def combine(cls, task: db.Task, values: list[db.Estimate]):
+        users = {v.user for v in values}
+        assert len(users) == 1
+
+        return cls(
+            ids=[el for v in values for el in v.ids],
+            created_at=max(v.created_at for v in values),
+            estimated_duration=sum(v.estimated_duration for v in values),
+            expectation_optimistic=sum(v.expectation_optimistic for v in values),
+            expectation_pessimistic=sum(v.expectation_pessimistic for v in values),
+            expectation_average=sum(v.expectation_average for v in values),
+            task=task,
+            user=list(users)[0],
+        )
+
+
+def get_estimate(db_user: db.User, db_task: db.Task, recursive: bool = True) -> Estimate:
     db_estimates = [e for e in db_task.estimates if e.user_id == db_user.id]
-    return max(db_estimates, key=lambda e: e.created_at, default=None)
+    result = max(db_estimates, key=lambda e: e.created_at, default=None)
+    if result is not None:
+        result = Estimate.from_db_estimate(result)
+
+    if recursive and db_task.children:
+        child_estimates = [get_estimate(db_user, c, True) for c in db_task.children]
+        if all(ce is not None for ce in child_estimates) and (
+            result is None or any(ce.created_at > result.created_at for ce in child_estimates)
+        ):
+            result = Estimate.combine(db_task, child_estimates)
+    return result
 
 
 def run_auto_scheduling(now: datetime | None, external_session: db.Session | None = None):

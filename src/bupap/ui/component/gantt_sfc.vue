@@ -51,7 +51,7 @@
             <rect x="0" :y="calc_row_top(dragged_row)" width="100%" :height="geom.row_height" :fill="colors.highlight" style="opacity:0.5"/>
           </g>
           <g v-for="row in rows" :key="row.key">
-            <g v-for="bar in row.bar" :key="bar.key" style="cursor: grab" @mousedown.left="drag(bar)"> <!-- -->
+            <g v-for="bar in row.bar" :key="bar.key"> <!-- style="cursor: grab" @mousedown.left="drag(bar)" -->
               <rect :x="calc_bar_start(bar)" :y="calc_bar_top(row.idx)" :width="calc_bar_length(bar)" :height="calc_bar_height()" :rx="geom.bar_round" :fill="bar.color" stroke="#505050"/>
               <svg  :x="calc_bar_start(bar)+geom.bar_round*2/3" :y="calc_bar_top(row.idx)" :width="calc_bar_length(bar) - geom.bar_round*4/3" :height="calc_bar_height()">
                 <text :y="geom.row_height/2" class="text-sm" :fill="bar.text_color" text-anchor="left">{{bar.text}}</text>
@@ -93,7 +93,8 @@
   display: grid;
   grid-template-columns: 250px auto;
   grid-template-rows: 70px auto;
-  gap: 0
+  gap: 0;
+  width: 100%;
 }
 .g-1-1 {
   grid-column: 1;

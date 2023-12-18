@@ -34,8 +34,10 @@ class RequestInfo:
     params: Dict[str, Any]
     query_data: Dict[str, Any]
 
+
 class RouterFrame(ui.element, component="router.js"):
     pass
+
 
 class Router:
     routes: list[routing.Route] = []
@@ -109,9 +111,8 @@ class Router:
         self.last_query_data = query_data
         query_data_encoded = "?" + urlencode(query_data, doseq=True)
         state = {"page": path, "query_data": query_data_encoded}
-        await ui.run_javascript(
+        ui.run_javascript(
             f'history.pushState({_to_js(state)}, "", {_to_js(path+query_data_encoded)})',
-            respond=False,
         )
 
     def reload(self):
@@ -120,9 +121,7 @@ class Router:
     def frame(self) -> ui.element:
         def open_from_browser(msg):
             logger.info(msg)
-            self.open(
-                msg.args["page"], msg.args["query_data"], push_state=msg.args["push_state"]
-            )
+            self.open(msg.args["page"], msg.args["query_data"], push_state=msg.args["push_state"])
 
         self.content = RouterFrame().on("open", open_from_browser)
         return self.content

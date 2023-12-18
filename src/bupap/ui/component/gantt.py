@@ -79,7 +79,7 @@ def _calc_text_color(col: str):
     return "#000000" if (r * 0.299 + g * 0.587 + b * 0.114) > 186 else "#ffffff"
 
 
-class Gantt(ui.element, component="gantt.vue"):
+class Gantt(ui.element, component="gantt_sfc.vue"):
     def __init__(
         self,
         title: str,
@@ -103,7 +103,7 @@ class Gantt(ui.element, component="gantt.vue"):
                 self._get_data(GanttMode.DAY, start, end, user_data), start, end
             ),
         )
-        self.on("open_item", lambda evt: open_item(evt["args"]))
+        self.on("open_item", lambda evt: open_item(evt.args))
 
     def set_day(self, day: date):
         start = datetime.combine(day, time(0, 0))

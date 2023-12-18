@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from typing import Self
 
 from bupap import db
 
@@ -13,6 +14,7 @@ class NewTask:
     name: str = ""
     description: str = ""
     parent_id: int | None = None
+    children: list[Self] = field(default_factory=list)
 
     def reset(self):
         self.name = ""

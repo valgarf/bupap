@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 from functools import partial
 
 import sqlalchemy as sa
@@ -11,18 +12,12 @@ from nicegui import ui
 from starlette.middleware.sessions import SessionMiddleware
 
 from bupap import db
+from bupap.db.database import get_database
 from bupap.ui import component
 from bupap.ui.common import Tree, TreeNode, get_user
-from bupap.ui.component import (
-    Kanban,
-    KanbanCardData,
-    KanbanData,
-    KanbanLane,
-    KanbanTag,
-    RequestInfo,
-    Router,
-    project_tree,
-)
+from bupap.ui.component import RequestInfo, Router, project_tree
+from bupap.ui.component.kanban import Kanban, KanbanCardData, KanbanData, KanbanLaneData, KanbanTag
+from bupap.ui.crud.task import TaskDone, get_estimate, task_done
 
 # from bupap.ui.component.kanban_card import KanbanCard
 
@@ -78,27 +73,58 @@ def create_projects_page():
     def _project_page_tasks(session: sa.orm.Session, project: db.Project):
         pass
         data = KanbanData()
+        for prio in db.TaskPriority:
+            data.priorities.append(
+                KanbanTag(
+                    prio.text,
+                    prio.default_color,
+                    prio.default_text_color,
+                )
+            )
         for state in db.TaskState:
-            lane = KanbanLane(state.name, state.name)
+            lane = KanbanLaneData(state.name, state.name)
             data.lanes[lane.id] = lane
             data.lane_order.append(lane.id)
+            if state in [db.TaskState.REQUEST, db.TaskState.PLANNING, db.TaskState.SCHEDULED]:
+                lane.priority_sorted = True
+            if state in [db.TaskState.DONE, db.TaskState.DONE]:
+                lane.finished_sorted = True
             tasks = [t for t in project.tasks if t.task_state == state]
+            if not lane.finished_sorted:
+                tasks.sort(key=lambda t: t.order_id or 0)
+            else:
+                tasks.sort(key=lambda t: t.finished_at, reverse=True)
             for t in tasks:
+                active = False
+                progress = None
+                if t.scheduled_assignee and t.finished_at is None:
+                    total_work = timedelta(0)
+                    for wp in t.work_periods:
+                        if wp.ended_at:
+                            total_work += wp.duration
+                        else:
+                            active = True
+                    if total_work:
+                        est = get_estimate(t.scheduled_assignee, t)
+                        progress = (
+                            total_work / est.expectation_pessimistic,
+                            total_work / est.expectation_average,
+                            total_work / est.expectation_optimistic,
+                        )
+                        progress = tuple(int(min(p, 1) * 100) for p in progress)
                 card = KanbanCardData(
                     title=t.name,
                     id=t.id,
                     lane_id=lane.id,
                     parent_id=t.parent_id,
                     depth=0,
-                    tags=[
-                        KanbanTag(
-                            t.task_priority.text,
-                            t.task_priority.default_color,
-                            t.task_priority.default_text_color,
-                        )
-                    ],
+                    tags=[],
                     detached=not t.attached,
+                    progress=progress,
+                    active=active,
+                    priority=t.task_priority.text,
                     link=True,
+                    finished_at=t.finished_at,
                 )
                 lane.card_order.append(card.id)
                 data.cards[card.id] = card
@@ -122,19 +148,74 @@ def create_projects_page():
 
         kanban = Kanban(data=data)
 
-        # with ui.row().classes("p-4 overflow-x-auto grow flex-nowrap items-stretch"):
-        #     for state in db.TaskState:
-        #         tasks = [t for t in project.tasks if t.task_state == state]
-        #         with ui.card().classes("min-w-[350pt] items-stretch"):
-        #             ui.label(state.name).classes("font-bold text-xl mt-5")
-        #             with ui.element("q-scroll-area").classes("m-0 p-0 pr-2 max-w-[330] grow"):
-        #                 with ui.column().classes("p-0 m-1 gap-2 items-stretch"):
-        #                     for task in tasks:
-        #                         with ui.card().classes("hover:bg-slate-200 cursor-pointer").on(
-        #                             "click", partial(Router.get().open, f"/task/{task.id}/Overview")
-        #                         ):
-        #                             ui.label(task.name).classes("text-base font-bold select-none")
-        #                             with ui.row():
-        #                                 ui.badge(task.task_priority.name, color="green").classes(
-        #                                     "p-1 m-1 select-none"
-        #                                 )
+        project_id = project.id
+
+        def moved_cards(data):
+            with get_database().session() as session:
+                state = db.TaskState[data.args["lane"]]
+                stmt = (
+                    sa.select(db.Task)
+                    .where(db.Task.project_id == project_id)
+                    .where(db.Task.task_state == state)
+                )
+                lane_order = session.scalars(stmt)
+                tasks = {
+                    c["id"]: (c["order"], c["detached"], session.get(db.Task, c["id"]))
+                    for c in data.args["cards"]
+                }
+                changed_tasks = sorted(tasks.values())
+                changed_task_keys = set(tasks.keys())
+                changed_task_children_ids = {
+                    rc.id for t in tasks.values() for rc in t[2].get_recursive_children()
+                }
+                lane_order = [
+                    t
+                    for t in lane_order
+                    if t.id not in changed_task_keys and t.id not in changed_task_children_ids
+                ]
+                lane_order.sort(key=lambda t: t.order_id or 0)
+                for tdata in changed_tasks:
+                    idx = tdata[0]
+                    lane_order.insert(idx, tdata[2])
+                    tdata[2].task_state = state
+                    for rc in tdata[2].get_recursive_children():
+                        idx += 1
+                        rc.task_state = state
+                        lane_order.insert(idx, rc)
+                for idx, t in enumerate(lane_order, start=0):
+                    # msg = f"{t.id}: {t.order_id} -> {idx}"
+                    t.order_id = idx
+
+                    if t.id in changed_task_keys:
+                        # msg += f" ({t.attached} -> {not tasks[t.id][1]})"
+                        t.attached = not tasks[t.id][1]
+                    # msg += f" {t.name}"
+                    # print(msg)
+                if state in [db.TaskState.DONE, db.TaskState.DISCARDED]:
+                    for tdata in changed_tasks:
+                        tdone = TaskDone(tdata[2].id, datetime.now(UTC))
+                        task_done(tdone, session, discarded=(state == db.TaskState.DISCARDED))
+                else:
+                    # TODO wrap in crud function
+                    def _unset_finished(t):
+                        if t.finished_at is not None:
+                            t.finished_at = None
+                        for c in t.children:
+                            if c.attached:
+                                _unset_finished(c)
+
+                    for tdata in changed_tasks:
+                        _unset_finished(tdata[2])
+
+                # session.rollback()
+                # TODO: do we need to close the gaps in the order id in the source lane?
+
+            # print(data)
+
+        kanban.on("moved_cards", moved_cards)
+
+        def open_link(evt):
+            task_id = evt.args["id"]
+            Router.get().open(f"/task/{task_id}/Overview")
+
+        kanban.on("open_link", open_link)
