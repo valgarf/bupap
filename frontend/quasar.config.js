@@ -30,8 +30,7 @@ module.exports = configure(function (/* ctx */) {
     // --> boot files are part of "main.js"
     // https://v2.quasar.dev/quasar-cli-vite/boot-files
     boot: [
-      
-      
+      'apollo'
     ],
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#css
@@ -77,6 +76,16 @@ module.exports = configure(function (/* ctx */) {
       // distDir
 
       // extendViteConf (viteConf) {},
+      extendViteConf(viteConf) {
+        viteConf.define = {
+          // this is a hack. 
+          // If not used, `process.env.NODE_ENV` will be replaced resulting in syntax errors. 
+          // See https://github.com/quasarframework/quasar/issues/16060#issuecomment-1829217883
+          'globalThis.process.env.NODE_ENV': JSON.stringify(
+            process.env.NODE_ENV
+          ),
+        };
+      },
       // viteVuePluginOptions: {},
 
       
@@ -88,7 +97,17 @@ module.exports = configure(function (/* ctx */) {
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#devServer
     devServer: {
       // https: true
-      open: true // opens browser window automatically
+      open: false, // opens browser window automatically
+      proxy: {
+        // proxy all requests starting with /api to jsonplaceholder
+        '/graphql': {
+          target: 'http://localhost:8124',
+          changeOrigin: true,
+          pathRewrite: {
+            '^/graphql': '/graphql'
+          }
+        }
+      }
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#framework
