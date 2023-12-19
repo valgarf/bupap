@@ -29,6 +29,7 @@ settings = Dynaconf(
     environments=True,
     validators=[
         Validator("initial_admin_password", default=None),
+        Validator("session_secret", default=None),
         Validator("editable", default=(Path(__file__).parent / "data" / "EDITABLE_TAG").exists()),
         Validator("pkg_root", default=str(Path(__file__).parent)),
         Validator("user_data_dir", default=user_data_dir("bupap")),

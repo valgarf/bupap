@@ -2,6 +2,7 @@
 show=false
 host="0.0.0.0"
 port=8123
+graphql_port=8124
 testdata=true
 
     [default.logging]
@@ -14,3 +15,4 @@ testdata=true
 [testing]
 testdata=true
 initial_admin_password="admin"
+session_secret="setting this allows session reuse across backend restarts"

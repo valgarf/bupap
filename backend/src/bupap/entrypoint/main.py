@@ -30,16 +30,6 @@ from bupap.ui.component import Gantt, Router
 MAIN_FILE = Path(__file__).resolve()
 
 
-def update_database():
-    # TODO: we need to ensure that alembic is installed alongside the project and we need to find the .ini file
-    # alembicArgs = [
-    #     '--raiseerr',
-    #     'upgrade', 'head',
-    # ]
-    # alembic.config.main(argv=alembicArgs)
-    pass
-
-
 def initialise_database():
     db.check_db_defaults(settings.initial_admin_password)
     if settings.testdata:
@@ -71,7 +61,6 @@ def run():
     configure_logging()
     injection_container = initialise_injection()
     install_style()
-    update_database()
     initialise_database()
 
     # with ui.column().classes("window-height window-width"):
