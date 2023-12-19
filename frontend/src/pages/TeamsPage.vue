@@ -41,9 +41,12 @@
 import { ref } from 'vue';
 import { useQuery } from '@vue/apollo-composable'
 import { gql } from '@apollo/client/core'
+import { useQuasar } from 'quasar'
+const $q = useQuasar()
+
 
 const search = ref<string>('');
-const { result, loading } = useQuery(gql`
+const { result, loading, onError } = useQuery(gql`
     query getTeams {
         teams {
             name
@@ -51,5 +54,18 @@ const { result, loading } = useQuery(gql`
         }
     }
 `);
+
+onError((err, ctx) => {
+    console.log(err, $q);
+    $q.notify({
+        message: 'GraphQL query failed',
+        color: 'negative',
+        caption: err.toString(),
+        actions: [
+        { icon: 'close', round: true, color: 'white', handler: () => { /* ... */ } }
+        ]
+    });
+});
+
 
 </script>
