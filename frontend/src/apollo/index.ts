@@ -35,7 +35,8 @@ export /* async */ function getClientOptions(
       process.env.GRAPHQL_URI ||
       // Change to your graphql endpoint.
       '/graphql',
-    fetch: (uri: string, options: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    fetch: (uri: string, options: any ) => {
       const timeoutFromHeader = options?.headers?.['x-timeout'];
       const timeout = timeoutFromHeader || Number(process.env.DEFAULT_TIMEOUT) || 5000;
       return fetchWithTimeout(uri, options, timeout);

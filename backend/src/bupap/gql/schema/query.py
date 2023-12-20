@@ -21,7 +21,15 @@ def get_all_teams(root, info: InfoContext):
     ]
 
 
+def get_all_users(root, info: InfoContext):
+    return [
+        User(db_obj)
+        for db_obj in info.context.db_session.scalars(sa.select(db.User).order_by(db.User.name))
+    ]
+
+
 @strawberry.type
 class Query:
     active_user: User | None = strawberry.field(resolver=get_active_user)
     teams: list[Team] = strawberry.field(resolver=get_all_teams)
+    users: list[User] = strawberry.field(resolver=get_all_users)
