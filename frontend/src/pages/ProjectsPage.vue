@@ -10,24 +10,19 @@
     </div>
     <div v-if="!loading && projects!=null">
         <q-tree
-        :nodes="projects"
-        node-key="label"
-        />
-        <!-- <q-list separator class="q-mt-sm">
-            <q-separator/>
-            <q-item clickable v-for="user in result.users" :key="user.dbId">
-                <q-item-section>
-                    <div class="row items-center">
-                        <div v-html="user.renderedAvatar" style="height:80px;width:80px;" class="q-pa-sm"/>
-                        <div class="column">
-                            <div class="text-subtitle1 text-weight-bold">{{user.fullName}}</div>
-                            <div class="text-body2 text-blue-grey-5">@{{user.name}}</div>
-                        </div>
-                    </div>
-                </q-item-section>
-            </q-item>
-            <q-separator/>
-        </q-list> -->
+          :nodes="projects"
+          node-key="dbId"
+          no-connectors
+          v-model:selected="selected"
+          @update:selected="openProject"
+          class="tree-base q-mt-md"
+        >
+            <template v-slot:default-header="prop">
+                <div class = "text-subtitle1 text-weight-bold q-py-md">
+                    {{prop.node.label}}
+                </div>
+            </template>
+        </q-tree>
     </div>
     <div v-if="loading" class="self-center col-grow column justify-center">
         <q-spinner v-if="loading"
@@ -42,13 +37,29 @@
   </q-page>
 </template>
 
+<style scoped>
+.line {
+    height: 1px;
+    border: 0px;
+    margin: 0px;
+    padding: 0px;
+    background-color: red;
+}
+.tree-base >>> .q-tree__node-header {
+    padding-top: 0px;
+    padding-bottom: 0px;
+    margin-top: 0px;
+}
+</style>
+
+
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useQuery } from '@vue/apollo-composable'
 import { gql } from '@apollo/client/core'
 import { listToTree } from 'src/common/tree'
 
-
+const selected = ref(null)
 const search = ref<string>('');
 const { result, loading, error } = useQuery(gql`
     query getProjects {
@@ -70,6 +81,9 @@ const projects = computed(()=> {
     return tree
 })
 
-
+function openProject(proj) {
+    selected.value = null
+    console.log('Opening project',proj);
+}
 
 </script>
