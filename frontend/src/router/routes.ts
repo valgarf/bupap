@@ -1,6 +1,7 @@
 import { RouteRecordRaw } from 'vue-router';
 import { default as TeamsPage } from 'pages/TeamsPage.vue';
 import { default as UsersPage } from 'pages/UsersPage.vue';
+import { default as ProjectsPage } from 'pages/ProjectsPage.vue';
 
 const routes: RouteRecordRaw[] = [
   {
@@ -10,6 +11,7 @@ const routes: RouteRecordRaw[] = [
       { path: '', component: () => import('pages/IndexPage.vue') },
       { path: 'teams', component: TeamsPage }, //() => import('pages/TeamsPage.vue') },
       { path: 'users', component: UsersPage }, //() => import('pages/TeamsPage.vue') },
+      { path: 'projects', component: ProjectsPage }, //() => import('pages/TeamsPage.vue') },
     ],
   },
 
