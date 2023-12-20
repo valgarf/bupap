@@ -18,14 +18,6 @@
             </q-item>
             <q-separator/>
         </q-list>
-<!--             
-        <hr class="bg-grey-5 q-mx-none q-mb-none q-mt-sm no-border" style="height:1px;"/>
-        <div v-for="team in result.teams" :key="team.dbId">
-            <div class="text-subtitle1 text-weight-bold q-pa-md q-hoverable">
-                {{team.name}}
-            </div>
-            <hr class="bg-grey-5 q-ma-none no-border" style="height:1px;"/>
-        </div> -->
     </div>
     <div v-if="loading" class="self-center col-grow column justify-center">
         <q-spinner v-if="loading"
@@ -34,6 +26,9 @@
             class="vertical-middle"
         />
     </div>
+    <div v-if="error" class="text-subtitle1 text-weight-bold q-pa-md bg-negative text-white">
+        Failed to load data.
+    </div>
   </q-page>
 </template>
 
@@ -41,12 +36,9 @@
 import { ref } from 'vue';
 import { useQuery } from '@vue/apollo-composable'
 import { gql } from '@apollo/client/core'
-import { useQuasar } from 'quasar'
-const $q = useQuasar()
-
 
 const search = ref<string>('');
-const { result, loading, onError } = useQuery(gql`
+const { result, loading, error } = useQuery(gql`
     query getTeams {
         teams {
             name
@@ -55,17 +47,6 @@ const { result, loading, onError } = useQuery(gql`
     }
 `);
 
-onError((err, ctx) => {
-    console.log(err, $q);
-    $q.notify({
-        message: 'GraphQL query failed',
-        color: 'negative',
-        caption: err.toString(),
-        actions: [
-        { icon: 'close', round: true, color: 'white', handler: () => { /* ... */ } }
-        ]
-    });
-});
 
 
 </script>
