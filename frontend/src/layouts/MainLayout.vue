@@ -10,9 +10,10 @@
         <q-toolbar-title>
         </q-toolbar-title>
 
-        <q-btn flat icon="admin_panel_settings" aria-label="Admin Control" to="/admin-settings"/>
-        <q-btn flat icon="settings" aria-label="Settings" to="/user-settings"/>
-        <q-btn flat icon="logout" aria-label="Logout" @click="logout"/>
+        <q-btn flat v-if="user.name != null" icon="admin_panel_settings" aria-label="Admin Control" to="/admin-settings"/>
+        <q-btn flat v-if="user.name != null" icon="settings" aria-label="Settings" to="/user-settings"/>
+        <q-btn flat v-if="user.name != null" icon="logout" aria-label="Logout" @click="logout"/>
+        <q-btn flat v-if="user.name == null" icon="login" aria-label="Login" to="/login"/>
       </q-toolbar>
     </q-header>
 
@@ -23,7 +24,13 @@
 </template>
 
 <script setup lang="ts">
+import {useActiveUserStore} from 'src/stores/active-user'
+import { useRouter } from 'vue-router'
+const router = useRouter()
 function logout() {
-  console.log('Implement logout');
+  user.logout()
+  router.push("/")
 }
+const user = useActiveUserStore()
+user.fetchUser()
 </script>

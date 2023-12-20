@@ -11,9 +11,9 @@ from ..common.context import Context, InfoContext
 from .user import User
 
 
-def login(root, info: InfoContext, username: str, password: str):
+def login(root, info: InfoContext, name: str, password: str):
     session = info.context.db_session
-    user: db.User = session.scalars(sa.select(db.User).where(db.User.name == username)).first()
+    user: db.User = session.scalars(sa.select(db.User).where(db.User.name == name)).first()
     if user and user.check_password(password):
         session_id = str(uuid.uuid4())
         user.session_id = session_id
@@ -23,6 +23,17 @@ def login(root, info: InfoContext, username: str, password: str):
     return None
 
 
+def logout(root, info: InfoContext):
+    user = info.context.user
+    if user:
+        user.session_id = None
+        info.context.user_session["session_id"] = None
+        info.context.user_session["user_id"] = None
+        return User(user)
+    return None
+
+
 @strawberry.type
 class Mutation:
     login: User | None = strawberry.field(resolver=login)
+    logout: User | None = strawberry.field(resolver=logout)

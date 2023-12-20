@@ -45,7 +45,7 @@
     padding: 0px;
     background-color: red;
 }
-.tree-base >>> .q-tree__node-header {
+:deep(.q-tree__node-header) {
     padding-top: 0px;
     padding-bottom: 0px;
     margin-top: 0px;
