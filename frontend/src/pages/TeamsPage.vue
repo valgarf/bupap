@@ -11,7 +11,7 @@
     <div v-if="!loading && result!=null">
         <q-list separator class="q-mt-sm">
             <q-separator/>
-            <q-item clickable v-for="team in result.teams" :key="team.dbId">
+            <q-item clickable v-for="team in result.teams" :key="team.dbId" @click="open(team)">
                 <q-item-section class="text-subtitle1 text-weight-bold q-pa-md">
                     {{team.name}}
                 </q-item-section>
@@ -19,16 +19,7 @@
             <q-separator/>
         </q-list>
     </div>
-    <div v-if="loading" class="self-center col-grow column justify-center">
-        <q-spinner v-if="loading"
-            color="primary"
-            size="3em"
-            class="vertical-middle"
-        />
-    </div>
-    <div v-if="error" class="text-subtitle1 text-weight-bold q-pa-md bg-negative text-white">
-        Failed to load data.
-    </div>
+    <query-status :loading="loading" :error="error"/>
   </q-page>
 </template>
 
@@ -36,7 +27,8 @@
 import { ref } from 'vue';
 import { useQuery } from '@vue/apollo-composable'
 import { gql } from '@apollo/client/core'
-
+import { useRouter } from 'vue-router';
+import QueryStatus from 'components/QueryStatus.vue'
 const search = ref<string>('');
 const { result, loading, error } = useQuery(gql`
     query getTeams {
@@ -47,6 +39,10 @@ const { result, loading, error } = useQuery(gql`
     }
 `);
 
+const router=useRouter()
+function open(team) {
+    router.push(`/team/${team.dbId}/`)
+}
 
 
 </script>

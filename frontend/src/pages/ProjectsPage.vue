@@ -24,16 +24,7 @@
             </template>
         </q-tree>
     </div>
-    <div v-if="loading" class="self-center col-grow column justify-center">
-        <q-spinner v-if="loading"
-            color="primary"
-            size="3em"
-            class="vertical-middle"
-        />
-    </div>
-    <div v-if="error" class="text-subtitle1 text-weight-bold q-pa-md bg-negative text-white">
-        Failed to load data.
-    </div>
+    <query-status :loading="loading" :error="error"/>
   </q-page>
 </template>
 
@@ -58,6 +49,7 @@ import { computed, ref } from 'vue';
 import { useQuery } from '@vue/apollo-composable'
 import { gql } from '@apollo/client/core'
 import { listToTree } from 'src/common/tree'
+import QueryStatus from 'components/QueryStatus.vue'
 
 const selected = ref(null)
 const search = ref<string>('');
