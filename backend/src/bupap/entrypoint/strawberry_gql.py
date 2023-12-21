@@ -88,7 +88,7 @@ app.add_websocket_route("/graphql", graphql_app)
 
 def main():
     uvicorn.run(
-        "bupap.entrypoint.strawberry:app",
+        "bupap.entrypoint.strawberry_gql:app",
         port=settings.graphql_port,
         host=settings.host,
         log_level="info",

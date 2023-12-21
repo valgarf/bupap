@@ -60,7 +60,6 @@ import { useRoute, useRouter } from 'vue-router';
 const route = useRoute()
 const router = useRouter()
 router.afterEach((to, from) => {
-  console.log(from.path, to.path)
   const order =['overview', 'members', 'schedule']
 
   const idx_from=order.indexOf(from.path.split('/')[3])
@@ -70,12 +69,10 @@ router.afterEach((to, from) => {
     to.meta.mode = 'out-in'
   }
   else if (idx_from < idx_to) {
-    console.log('slide left')
     to.meta.transition = 'slide-left'
     to.meta.mode = 'out-in'
   }
   else {
-    console.log('slide right')
     to.meta.transition = 'slide-right'
     to.meta.mode = 'out-in'
   }

@@ -35,7 +35,7 @@ py-ts-interfaces = "^0.5.0"
 
 [tool.poetry.scripts]
 bupap-nicegui = 'bupap.entrypoint.main:run_poetry'
-bupap = 'bupap.entrypoint.strawberry:main'
+bupap = 'bupap.entrypoint.strawberry_gql:main'
 bupap-alembic = 'bupap.entrypoint.bupap_alembic:main'
 bupap-settings = 'bupap.entrypoint.bupap_settings:main'
 

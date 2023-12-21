@@ -69,7 +69,6 @@ const projects = computed(()=> {
     }
     const transformed = result.value.projects.map((p) => {return {dbId: p.dbId, label: p.name, parent: p.parent}})
     const tree = listToTree(transformed);
-    console.log(transformed, tree);
     return tree
 })
 
