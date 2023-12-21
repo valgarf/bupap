@@ -3,10 +3,13 @@ import { provideApolloClient, useQuery } from '@vue/apollo-composable';
 import { apolloClient } from 'boot/apollo';
 import { gql } from '@apollo/client/core';
 
+export enum UserState { GUEST, LOGGING_IN, LOGGED_IN };
 export const useActiveUserStore = defineStore('activeUser', {
   state: () => ({
     name: null,
     fullName: null,
+    state: UserState.GUEST,
+    lastLoginFailed: false
   }),
   getters: {
     // doubleCount: (state) => state.counter * 2,
@@ -18,8 +21,31 @@ export const useActiveUserStore = defineStore('activeUser', {
       result = result?.data?.user
       this.name = result?.name
       this.fullName = result?.fullName
+      if (this.name == null) {
+        this.lastLoginFailed = true
+        this.state = UserState.GUEST;
+      }
+      else {
+        this.state = UserState.LOGGED_IN;
+      }
+    },
+    resultLoginHandler(result: any) {
+      this.resultHander(result)
+      if (this.name == null) {
+        this.lastLoginFailed = true
+      }
+    },
+    errorHandler() {
+      this.state = UserState.GUEST
+      this.name = null
+      this.fullName = null
     },
     login(name: string, password: string) {
+      if (this.state == UserState.LOGGING_IN) {
+        return
+      }
+      this.lastLoginFailed = false
+      this.state = UserState.LOGGING_IN
       const query = provideApolloClient(apolloClient)(() => useQuery(gql`
         mutation login($name: String! $password: String!) {
           user: login(name: $name, password: $password) {
@@ -33,7 +59,8 @@ export const useActiveUserStore = defineStore('activeUser', {
       }, {
         fetchPolicy: 'no-cache',
       }))
-      query.onResult(this.resultHander);
+      query.onResult(this.resultLoginHandler)
+      query.onError(this.errorHandler)
     },
     fetchUser() {
       console.info('fetch user')
@@ -65,6 +92,7 @@ export const useActiveUserStore = defineStore('activeUser', {
       query.onResult(() => {
         self.name = null
         self.fullName = null
+        this.state = UserState.GUEST;
       });
     }
   },
