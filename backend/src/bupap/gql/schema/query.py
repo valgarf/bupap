@@ -10,9 +10,11 @@ from strawberry.extensions.field_extension import (
 )
 
 from bupap import db
+from bupap.common.enums import RoleType
 from bupap.gql.common.context import InfoContext
 
 from .project import Project
+from .role import AssignedTeamRole, Role
 from .team import Team
 from .user import User
 
@@ -44,12 +46,12 @@ def get_all_projects(root, info: InfoContext, toplevel: bool = False):
     return [Project(db_obj) for db_obj in info.context.db_session.scalars(query)]
 
 
-async def resolve_db_node(root, info: InfoContext, type_name: str, db_id: int):
-    gid = strawberry.relay.GlobalID(type_name, str(db_id))
+async def resolve_db_node(root, info: InfoContext, typename: str, db_id: int):
+    gid = strawberry.relay.GlobalID(typename, str(db_id))
     try:
         result = gid.resolve_type(info)
     except Exception:
-        raise RuntimeError(f"Failed to resolve type '{type_name}'.")
+        raise RuntimeError(f"Failed to resolve type '{typename}'.")
     try:
         result = result.resolve_node(gid.node_id, info=info, required=False)
     except StopIteration:

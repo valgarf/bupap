@@ -7,6 +7,7 @@ import sqlalchemy as sa
 import sqlalchemy.types
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from bupap.common.enums import RoleType
 from bupap.permissions import Permission
 
 from .base import Base, intfk, str_50
@@ -27,12 +28,6 @@ class PermissionType(sa.types.TypeDecorator):
 
     def process_result_value(self, value, dialect):
         return Permission(value)
-
-
-class RoleType(Enum):
-    GLOBAL = auto()
-    TEAM = auto()
-    PROJECT = auto()
 
 
 class Role(Base):

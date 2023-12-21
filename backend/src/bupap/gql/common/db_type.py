@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+from functools import cached_property
 from types import UnionType
 from typing import (
     TYPE_CHECKING,
@@ -20,6 +21,8 @@ import sqlalchemy as sa
 import strawberry
 from strawberry.extensions.field_extension import FieldExtension
 from strawberry.field import StrawberryField
+from strawberry.lazy_type import LazyType
+from strawberry.type import StrawberryList, StrawberryOptional
 
 if TYPE_CHECKING:
     from strawberry.types import Info
@@ -45,52 +48,43 @@ class DBAttrExtension(FieldExtension):
         self.attr_name = attr_name
         self.converter = None
 
+    @cached_property
+    def resolved_type(self):
+        return self.field.type_annotation.resolve()
+
+    def convert(self, type_, result):
+        try:
+            if result is None:
+                return None
+            if isinstance(type_, LazyType):
+                type_ = type_.resolve_type()
+            if isinstance(type_, StrawberryOptional):
+                return self.convert(type_.of_type, result)
+            if isinstance(type_, StrawberryList):
+                if not isinstance(result, (list, tuple)):
+                    raise RuntimeError(f"Expected a list for field {self.field}. Value: {result}")
+                return [self.convert(type_.of_type, el) for el in result]
+            if issubclass(type_, DBType):
+                result = type_(result)
+            # TODO: check if scalar type in else case?
+            return result
+        except Exception as exc:
+            ic(exc, type_)
+            raise
+
     def resolve(self, next_: Callable[..., Any], source: Any, info: Info, **kwargs):
         result = getattr(source.db_obj, self.attr_name)
         if self.converter is not None:
             result = self.converter(result)
+        elif self.field.type_annotation is not None:
+            result = self.convert(self.resolved_type, result)
+
         return result
 
     def apply(self, field: StrawberryField) -> None:
+        self.field = field
         if self.attr_name is None:
             self.attr_name = field.python_name
-        if self.converter is None and field.type_annotation is not None:
-            # TODO: this only works for some cases:
-            # - DBObject type
-            # - Optional DBObject type
-            # - list of DBObject type
-            anno = field.type_annotation.annotation
-            if isinstance(anno, str):
-                raise RuntimeError(f"Unresolved type {anno}")
-            else:
-                origin = get_origin(anno)
-                if origin is not None:
-                    if origin is UnionType:
-                        args = get_args(anno)
-                        if len(args) == 2 and type(None) in args:
-                            # optional result
-                            anno = [a for a in args if a is not None][0]
-                            if issubclass(anno, DBType):
-
-                                def converter(db_obj):
-                                    if db_obj is None:
-                                        return None
-                                    return anno(db_obj)
-
-                                self.converter = converter
-                    elif origin is list:
-                        anno = get_args(anno)[0]
-
-                        def converter(db_objs):
-                            return [anno(db_obj) for db_obj in db_objs]
-
-                        self.converter = converter
-                elif issubclass(anno, DBType):
-
-                    def converter(db_obj):
-                        return anno(db_obj)
-
-                    self.converter = converter
 
 
 @dataclasses.dataclass

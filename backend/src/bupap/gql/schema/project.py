@@ -1,4 +1,4 @@
-from __future__ import annotations
+from typing import Self
 
 import strawberry
 
@@ -12,5 +12,5 @@ class Project(DBType, strawberry.relay.Node):
     _db_table = db.Project
     db_id: int = map_to_db("id")
     name: str = map_to_db()
-    parent: Project | None = map_to_db()
-    children: list[Project] = map_to_db()
+    parent: Self | None = map_to_db()
+    children: list[Self] = map_to_db()
