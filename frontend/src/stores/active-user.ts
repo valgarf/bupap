@@ -29,6 +29,7 @@ export const useActiveUserStore = defineStore('activeUser', {
         this.state = UserState.LOGGED_IN;
       }
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resultLoginHandler(result: any) {
       this.resultHander(result)
       if (this.name == null) {

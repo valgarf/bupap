@@ -24,9 +24,10 @@ const routes: RouteRecordRaw[] = [
       { path: 'projects', component: ProjectsPage }, 
       {
         path: 'team/:id',
+        redirect: {name:'team-index'},
         component: TeamLayout,
         children: [
-          { path: 'overview', component: TeamOverviewPage, meta: { transition: 'slide-right' }, }, 
+          { path: 'overview', name: 'team-index', component: TeamOverviewPage, meta: { transition: 'slide-right' }, }, 
           { path: 'members', component: TeamMembersPage, meta: { transition: 'slide-right' }, }, 
           { path: 'schedule', component: TeamSchedulePage, meta: { transition: 'slide-right' }, }, 
         ]

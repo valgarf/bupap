@@ -54,7 +54,7 @@ function login() {
 watchEffect(() => {
     // reroute if logged in (will also reroute if already logged in)
     if (user.name != null) {
-        router.push("/")
+        router.push('/')
     }
 })
 </script>

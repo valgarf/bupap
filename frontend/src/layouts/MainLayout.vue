@@ -25,12 +25,11 @@
 
 <script setup lang="ts">
 import {useActiveUserStore} from 'src/stores/active-user'
-import { useRouter, useRoute } from 'vue-router'
-const route = useRoute()
+import { useRouter } from 'vue-router'
 const router = useRouter()
 function logout() {
   user.logout()
-  router.push("/")
+  router.push('/')
 }
 const user = useActiveUserStore()
 user.fetchUser()
