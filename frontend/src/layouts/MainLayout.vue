@@ -1,5 +1,5 @@
 <template>
-  <q-layout view="lHh Lpr lFf">
+  <q-layout view="hHh lpR fFf">
     <q-header>
       <q-toolbar class="q-py-md">
         <q-btn flat icon="home" aria-label="Home" to="/"/>
@@ -18,14 +18,15 @@
     </q-header>
 
     <q-page-container>
-      <router-view />
+        <router-view/>
     </q-page-container>
   </q-layout>
 </template>
 
 <script setup lang="ts">
 import {useActiveUserStore} from 'src/stores/active-user'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
+const route = useRoute()
 const router = useRouter()
 function logout() {
   user.logout()

@@ -1,19 +1,36 @@
 import { RouteRecordRaw } from 'vue-router';
+import { default as MainLayout } from 'layouts/MainLayout.vue';
+import { default as TeamLayout } from 'layouts/TeamLayout.vue';
+
 import { default as TeamsPage } from 'pages/TeamsPage.vue';
 import { default as UsersPage } from 'pages/UsersPage.vue';
 import { default as ProjectsPage } from 'pages/ProjectsPage.vue';
 import { default as LoginPage } from 'pages/LoginPage.vue';
+import { default as IndexPage } from 'pages/IndexPage.vue';
+
+import { default as TeamOverviewPage } from 'pages/team/OverviewPage.vue';
+import { default as TeamMembersPage } from 'pages/team/MembersPage.vue';
+import { default as TeamSchedulePage } from 'pages/team/SchedulePage.vue';
 
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
-    component: () => import('layouts/MainLayout.vue'),
+    component: MainLayout, //() => import('layouts/MainLayout.vue'),
     children: [
-      { path: '', component: () => import('pages/IndexPage.vue') },
-      { path: 'login', component: LoginPage }, //() => import('pages/TeamsPage.vue') },
-      { path: 'teams', component: TeamsPage }, //() => import('pages/TeamsPage.vue') },
-      { path: 'users', component: UsersPage }, //() => import('pages/TeamsPage.vue') },
-      { path: 'projects', component: ProjectsPage }, //() => import('pages/TeamsPage.vue') },
+      { path: '', component: IndexPage }, //() => import('pages/IndexPage.vue') },
+      { path: 'login', component: LoginPage }, 
+      { path: 'teams', component: TeamsPage }, 
+      { path: 'users', component: UsersPage }, 
+      { path: 'projects', component: ProjectsPage }, 
+      {
+        path: 'team/:id',
+        component: TeamLayout,
+        children: [
+          { path: 'overview', component: TeamOverviewPage, meta: { transition: 'slide-right' }, }, 
+          { path: 'members', component: TeamMembersPage, meta: { transition: 'slide-right' }, }, 
+          { path: 'schedule', component: TeamSchedulePage, meta: { transition: 'slide-right' }, }, 
+        ]
+      },
     ],
   },
 
