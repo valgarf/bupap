@@ -1,5 +1,13 @@
+import inspect
+from typing import Any, Callable
+
 import sqlalchemy as sa
 import strawberry
+from strawberry.extensions.field_extension import (
+    AsyncExtensionResolver,
+    FieldExtension,
+    SyncExtensionResolver,
+)
 
 from bupap import db
 from bupap.gql.common.context import InfoContext
@@ -36,8 +44,24 @@ def get_all_projects(root, info: InfoContext, toplevel: bool = False):
     return [Project(db_obj) for db_obj in info.context.db_session.scalars(query)]
 
 
+async def resolve_db_node(root, info: InfoContext, type_name: str, db_id: int):
+    gid = strawberry.relay.GlobalID(type_name, str(db_id))
+    try:
+        result = gid.resolve_type(info)
+    except Exception:
+        raise RuntimeError(f"Failed to resolve type '{type_name}'.")
+    try:
+        result = result.resolve_node(gid.node_id, info=info, required=False)
+    except StopIteration:
+        return None
+    return await result if inspect.isawaitable(result) else result
+
+
 @strawberry.type
 class Query:
+    node: strawberry.relay.Node | None = strawberry.relay.node()
+    db_node: strawberry.relay.Node | None = strawberry.field(resolver=resolve_db_node)
+
     active_user: User | None = strawberry.field(resolver=get_active_user)
     teams: list[Team] = strawberry.field(resolver=get_all_teams)
     users: list[User] = strawberry.field(resolver=get_all_users)
