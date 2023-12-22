@@ -15,6 +15,7 @@ from nicegui import background_tasks, ui
 from starlette.middleware.sessions import SessionMiddleware
 
 from bupap import db
+from bupap.common.enums import ScheduleMode
 from bupap.permissions import default_team_roles
 from bupap.ui import component
 from bupap.ui.common import get_user
@@ -25,14 +26,11 @@ from bupap.ui.component import Errors, RequestInfo, Router
 class GanttState:
     date: datetime
 
-class ScheduleMode(Enum):
-    PESSIMISTIC = auto()
-    AVERAGE = auto()
-    OPTIMISTIC = auto()
 
 @dataclass
 class Info:
     schedule_mode: ScheduleMode = ScheduleMode.AVERAGE
+
 
 def create_teams_page():
     @Router.add("/teams")
@@ -111,7 +109,9 @@ def create_teams_page():
                     component.user_card(user)
 
     @Errors.wrap_error("Failed to fetch Team Schedule Data")
-    def _get_gantt_data(info: Info,  mode: component.GanttMode, start: datetime, end: datetime, user_data):
+    def _get_gantt_data(
+        info: Info, mode: component.GanttMode, start: datetime, end: datetime, user_data
+    ):
         now = datetime.utcnow()
         with db.session() as session:
             team_id = user_data["team_id"]
@@ -130,19 +130,29 @@ def create_teams_page():
                 .where(db.AssignedTeamRole.team_id == team_id)
                 .where(db.Role.name == "Developer")
             ).all()
+
             def _filter_on_schedule_mode(query):
                 match info.schedule_mode:
                     case ScheduleMode.PESSIMISTIC:
-                        return query.where(db.Task.scheduled_pessimistic_start < end).where(db.Task.scheduled_pessimistic_end > max(start, now))
+                        return query.where(db.Task.scheduled_pessimistic_start < end).where(
+                            db.Task.scheduled_pessimistic_end > max(start, now)
+                        )
                     case ScheduleMode.AVERAGE:
-                        return query.where(db.Task.scheduled_average_start < end).where(db.Task.scheduled_average_end > max(start, now))
+                        return query.where(db.Task.scheduled_average_start < end).where(
+                            db.Task.scheduled_average_end > max(start, now)
+                        )
                     case ScheduleMode.OPTIMISTIC:
-                        return query.where(db.Task.scheduled_optimistic_start < end).where(db.Task.scheduled_optimistic_end > max(start, now))
+                        return query.where(db.Task.scheduled_optimistic_start < end).where(
+                            db.Task.scheduled_optimistic_end > max(start, now)
+                        )
+
             scheduled: list[db.Task] = session.scalars(
-                _filter_on_schedule_mode(sa.select(db.Task)
-                .join(db.User, onclause=db.User.id == db.Task.scheduled_assignee_id)
-                .join(db.AssignedTeamRole)
-                .join(db.Role))
+                _filter_on_schedule_mode(
+                    sa.select(db.Task)
+                    .join(db.User, onclause=db.User.id == db.Task.scheduled_assignee_id)
+                    .join(db.AssignedTeamRole)
+                    .join(db.Role)
+                )
                 .where(db.Task.task_state == db.TaskState.SCHEDULED)
                 .where(db.AssignedTeamRole.team_id == team_id)
                 .where(db.Role.name == "Developer")
@@ -285,9 +295,20 @@ def create_teams_page():
             ui.button(on_click=btn_left).props("icon=keyboard_arrow_left flat")
             el_pick_date = component.PickDate(on_change=change_date, initial=initial_date)
             ui.button(on_click=btn_right).props("icon=keyboard_arrow_right flat")
-            ui.toggle({ScheduleMode.OPTIMISTIC: "optimistic", ScheduleMode.AVERAGE:"average", ScheduleMode.PESSIMISTIC: "pessimistic"}, value=info.schedule_mode).bind_value(info, "schedule_mode").on("update:model-value", update)
+            ui.toggle(
+                {
+                    ScheduleMode.OPTIMISTIC: "optimistic",
+                    ScheduleMode.AVERAGE: "average",
+                    ScheduleMode.PESSIMISTIC: "pessimistic",
+                },
+                value=info.schedule_mode,
+            ).bind_value(info, "schedule_mode").on("update:model-value", update)
         el_gantt = component.Gantt(
-            team.name, initial_date, {"team_id": team.id}, partial(_get_gantt_data, info), _open_clicked_item
+            team.name,
+            initial_date,
+            {"team_id": team.id},
+            partial(_get_gantt_data, info),
+            _open_clicked_item,
         )
         el_gantt.classes("grow")
         el_gantt.set_day(initial_date)
