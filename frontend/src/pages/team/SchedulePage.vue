@@ -27,6 +27,15 @@
         </template>
       </q-input>
       <q-btn icon="keyboard_arrow_right" flat @click="next_day" />
+      <q-btn-toggle
+        :options="[
+          { value: 'OPTIMISTIC', label: 'optimistic' },
+          { value: 'AVERAGE', label: 'average' },
+          { value: 'PESSIMISTIC', label: 'pessimistic' },
+        ]"
+        v-model="scheduleMode"
+        class="q-mx-md"
+      />
       <q-spinner v-if="loading" color="primary" size="3em" />
     </div>
     <gantt-chart v-if="ganttData != null" class="col-grow" :data="ganttData" />
@@ -42,7 +51,7 @@
 <script setup lang = "ts">
 import { useQuery } from '@vue/apollo-composable';
 import { gql } from '@apollo/client/core';
-import { onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import QueryStatus from 'src/components/QueryStatus.vue';
 import {
   default as GanttChart,
@@ -55,6 +64,7 @@ import { useRouteQuery } from 'vue-use-route-query';
 
 const route = useRoute();
 
+const scheduleMode = ref('AVERAGE');
 const day = useRouteQuery('day', new Date().toISOString().split('T')[0], {
   mode: 'push',
 });
@@ -164,7 +174,7 @@ const { result, loading, error } = useQuery(
   {
     start: queryStart,
     end: queryEnd,
-    mode: 'AVERAGE',
+    mode: scheduleMode,
     dbId: parseInt(route.params.id),
   },
   () => ({

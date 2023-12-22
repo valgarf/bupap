@@ -1,7 +1,7 @@
 <template>
   <div class="gantt-grid">
     <div class="g-1-1">
-      <div class="text-subtitle1 text-weight-bold">{{ data.title }}</div>
+      <div class="text-h6 text-weight-bold">{{ data.title }}</div>
     </div>
     <!-- <div class="g-2-1"> -->
     <q-scroll-area
