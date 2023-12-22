@@ -6,8 +6,3 @@ export interface Todo {
 export interface Meta {
   totalCount: number;
 }
-
-export interface Team {
-  name: string;
-  db_id: number;
-}

@@ -3,8 +3,7 @@
     depth="3"
     :routes="[
       { label: 'Overview', to: 'overview' },
-      { label: 'Members', to: 'members' },
-      { label: 'Schedule', to: 'schedule' },
+      { label: 'Activity', to: 'activity' },
     ]"
   />
 </template>

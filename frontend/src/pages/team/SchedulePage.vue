@@ -61,11 +61,12 @@ import {
 } from 'src/components/GanttChart.vue';
 import { computed, ref, watchEffect } from 'vue';
 import { useRouteQuery } from 'vue-use-route-query';
+import { DateTime } from 'luxon';
 
 const route = useRoute();
 
 const scheduleMode = ref('AVERAGE');
-const day = useRouteQuery('day', new Date().toISOString().split('T')[0], {
+const day = useRouteQuery('day', DateTime.now().toISODate(), {
   mode: 'push',
 });
 
