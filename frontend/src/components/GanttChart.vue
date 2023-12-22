@@ -1,8 +1,7 @@
 <template>
   <div class="gantt-grid">
     <div class="g-1-1">
-      <div class="text-subtitle1 text-weight-bold">{{ title }}</div>
-      <!-- <div class="text-sm">{{dt_start}}</div> -->
+      <div class="text-subtitle1 text-weight-bold">{{ data.title }}</div>
     </div>
     <!-- <div class="g-2-1"> -->
     <q-scroll-area
@@ -47,7 +46,7 @@
         :height="calc_image_height()"
         xmlns="http://www.w3.org/2000/svg"
       >
-        <g v-for="row in rows" :key="row.key">
+        <g v-for="row in data.rows" :key="row.key">
           <text x="10" :y="calc_row_center(row.idx) + 8" class="text-subtitle1">
             {{ row.name }}
           </text>
@@ -59,7 +58,7 @@
           :y2="calc_row_top(0)"
           stroke="black"
         />
-        <g v-for="row in rows" :key="row.key">
+        <g v-for="row in data.rows" :key="row.key">
           <line
             x1="0"
             :y1="calc_row_bottom(row.idx)"
@@ -72,7 +71,7 @@
           x1="100%"
           :y1="geom.pad_top"
           x2="100%"
-          :y2="geom.row_height * rows.length + geom.pad_top"
+          :y2="geom.row_height * data.rows.length + geom.pad_top"
           stroke="black"
         />
       </svg>
@@ -90,10 +89,10 @@
           x="0"
           :y="geom.pad_top"
           width="100%"
-          :height="geom.row_height * rows.length"
+          :height="geom.row_height * data.rows.length"
           :fill="colors.default_bg"
         />
-        <g v-for="row in rows" :key="row.key">
+        <g v-for="row in data.rows" :key="row.key">
           <g v-for="bg in row.bg" :key="bg.key">
             <rect
               :x="calc_bar_start(bg)"
@@ -113,10 +112,10 @@
             stroke="black"
           />
         </g>
-        <g v-if="dt_now > dt_start && dt_now < dt_end">
+        <g v-if="data.now > data.start && data.now < data.end">
           <line
-            :x1="calc_dt_to_x(dt_now)"
-            :x2="calc_dt_to_x(dt_now)"
+            :x1="calc_dt_to_x(data.now)"
+            :x2="calc_dt_to_x(data.now)"
             :y1="calc_row_top(0) - 5"
             :y2="calc_image_height() - geom.pad_bottom + 5"
             stroke="grey"
@@ -134,8 +133,8 @@
             style="opacity: 0.5"
           />
         </g>
-        <g v-for="row in rows" :key="row.key">
-          <g v-for="bar in row.bar" :key="bar.key">
+        <g v-for="row in data.rows" :key="row.key">
+          <g v-for="bar in row.bars" :key="bar.key">
             <!-- style="cursor: grab" @mousedown.left="drag(bar)" -->
             <rect
               :x="calc_bar_start(bar)"
@@ -197,7 +196,7 @@
           :y2="calc_row_top(0)"
           stroke="black"
         />
-        <g v-for="row in rows" :key="row.key">
+        <g v-for="row in data.rows" :key="row.key">
           <line
             x1="0"
             :y1="calc_row_bottom(row.idx)"
@@ -262,8 +261,34 @@
   grid-row: 2;
 }
 </style>
+<script lang='ts'>
+export interface GanttBar {
+  idx: number;
+  key: string;
+  start: Date;
+  end: Date;
+  color: string;
+  text?: string;
+}
+export interface GanttRow {
+  idx: number;
+  key: string;
+  name: string;
+  bg: GanttBar[];
+  fg: GanttBar[];
+  bars: GanttBar[];
+}
 
-<script setup>
+export interface GanttData {
+  title: string;
+  rows: GanttRow[];
+  now: Date;
+  start: Date;
+  end: Date;
+}
+</script>
+
+<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 
 const gantt = ref(null);
@@ -272,63 +297,74 @@ const qscroll12 = ref(null);
 const qscroll21 = ref(null);
 const qscroll22 = ref(null);
 
-const title = 'Test';
-const start = new Date();
-const dt_start = start;
-const dt_end = new Date(start.getTime() + 1000 * 3600 * 24);
-console.log(dt_start, dt_end);
-console.log(dt_end - dt_start);
-const dt_now = start;
-const rows = [
-  {
-    idx: 0,
-    name: 'sr',
-    key: 'sr',
-    bg: [],
-    fg: [],
-    bar: [
-      {
-        key: 'sr1',
-        start: start,
-        end: new Date(start.getTime() + 1000 * 2 * 3600),
-        color: '#2de1c2',
-      },
-      { key: 'sr2', start: 160 / 5000, end: 250 / 5000, color: '#f25757' },
-    ],
-  },
-  {
-    idx: 1,
-    name: 'te',
-    key: 'te',
-    bg: [],
-    fg: [],
-    bar: [
-      {
-        key: 'te1',
-        start: new Date(start.getTime() + 1000 * 0.5 * 3600),
-        end: new Date(start.getTime() + 1000 * 1.5 * 3600),
-        color: '#63474d',
-      },
-      { key: 'te2', start: 160 / 5000, end: 250 / 5000, color: '#d4b2d8' },
-    ],
-  },
-  {
-    idx: 2,
-    name: 'jbw',
-    key: 'jbw',
-    bg: [],
-    fg: [],
-    bar: [
-      {
-        key: 'jbw1',
-        start: new Date(start.getTime() - 1000 * 1 * 3600),
-        end: new Date(start.getTime() + 1000 * 2 * 3600),
-        color: '#63474d',
-      },
-      { key: 'jbw1', start: 160 / 5000, end: 250 / 5000, color: '#d4b2d8' },
-    ],
-  },
-];
+// const start = new Date();
+// const _rows = [
+//   {
+//     idx: 0,
+//     name: 'sr',
+//     key: 'sr',
+//     bg: [],
+//     fg: [],
+//     bars: [
+//       {
+//         idx: 0,
+//         key: 'sr1',
+//         start: start,
+//         end: new Date(start.getTime() + 1000 * 2 * 3600),
+//         color: '#2de1c2',
+//       },
+//     ],
+//   },
+//   {
+//     idx: 1,
+//     name: 'te',
+//     key: 'te',
+//     bg: [],
+//     fg: [],
+//     bars: [
+//       {
+//         idx: 0,
+//         key: 'te1',
+//         start: new Date(start.getTime() + 1000 * 0.5 * 3600),
+//         end: new Date(start.getTime() + 1000 * 1.5 * 3600),
+//         color: '#63474d',
+//       },
+//       {
+//         idx: 1,
+//         key: 'te2',
+//         start: new Date(start.getTime() + 1000 * 1.8 * 3600),
+//         end: new Date(start.getTime() + 1000 * 2.0 * 3600),
+//         color: '#d4b2d8',
+//       },
+//     ],
+//   },
+//   {
+//     idx: 2,
+//     name: 'jbw',
+//     key: 'jbw',
+//     bg: [],
+//     fg: [],
+//     bars: [
+//       {
+//         idx: 0,
+//         key: 'jbw1',
+//         start: new Date(start.getTime() - 1000 * 1 * 3600),
+//         end: new Date(start.getTime() + 1000 * 2 * 3600),
+//         color: '#63474d',
+//       },
+//     ],
+//   },
+// ];
+
+// const data: GanttData = {
+//   title: 'Test',
+//   rows: _rows,
+//   now: start,
+//   start: new Date(start.getTime() - 1000 * 3600 * 2),
+//   end: new Date(start.getTime() + 1000 * 3600 * 22),
+// };
+
+const props = defineProps(['data']);
 const dragged = { x: 0, y: 0, entry: null };
 const geom = {
   pad_top: 32,
@@ -365,32 +401,12 @@ function handle_click() {
   value += 1;
   $emit('change', value);
 }
-function set_new_data(data) {
-  for (var row of data.row_data) {
-    for (var el of row.bg) {
-      el['start'] = new Date(el['start']);
-      el['end'] = new Date(el['end']);
-    }
-    for (el of row.fg) {
-      el['start'] = new Date(el['start']);
-      el['end'] = new Date(el['end']);
-    }
-    for (el of row.bar) {
-      el['start'] = new Date(el['start']);
-      el['end'] = new Date(el['end']);
-    }
-  }
-  rows = data.row_data;
-  dt_start = new Date(data.start);
-  dt_end = new Date(data.end);
-  dt_now = new Date(data.now);
-}
 function get_hour_marks() {
   var marks = [];
-  var c = new Date(dt_start);
+  var c = new Date(props.data.start);
   c.setHours(c.getHours() + 1);
   c.setMinutes(0, 0, 0);
-  while (c < dt_end) {
+  while (c < props.data.end) {
     marks.push(new Date(c));
     c.setHours(c.getHours() + 1);
   }
@@ -403,17 +419,19 @@ function _padZero(num) {
   }
   return result;
 }
-function format_hour_mark(dt) {
+function format_hour_mark(dt: Date) {
   return _padZero(dt.getHours()) + ':' + _padZero(dt.getMinutes());
 }
-function format_dt(dt) {
+function format_dt(dt: Date) {
   return format_hour_mark(dt);
 }
-function calc_dt_to_x(dt) {
-  return ((dt - dt_start) / 1000) * geom.width_per_second;
+function calc_dt_to_x(dt: Date) {
+  return (
+    ((dt.getTime() - props.data.start.getTime()) / 1000) * geom.width_per_second
+  );
 }
 function calc_image_width() {
-  return calc_dt_to_x(dt_end);
+  return calc_dt_to_x(props.data.end);
 }
 function calc_bar_top(idx) {
   return calc_row_top(idx) + geom.bar_inset;
@@ -427,19 +445,24 @@ function calc_row_center(idx) {
 function calc_row_bottom(idx) {
   return (idx + 1) * geom.row_height + geom.pad_top;
 }
-function calc_bar_start(entry) {
+function calc_bar_start(entry: GanttBar) {
   return calc_dt_to_x(entry.start);
 }
-function calc_bar_length(entry) {
-  return ((entry.end - entry.start) / 1000) * geom.width_per_second;
+function calc_bar_length(entry: GanttBar) {
+  return (
+    ((entry.end.getTime() - entry.start.getTime()) / 1000) *
+    geom.width_per_second
+  );
 }
 function calc_image_height() {
-  return geom.row_height * rows.length + geom.pad_top + geom.pad_bottom;
+  return (
+    geom.row_height * props.data.rows.length + geom.pad_top + geom.pad_bottom
+  );
 }
 function calc_bar_height() {
   return geom.row_height - 2 * geom.bar_inset;
 }
-function drag(entry) {
+function drag(entry: GanttBar) {
   dragged.entry = entry;
 }
 function drop() {

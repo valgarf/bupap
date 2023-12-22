@@ -119,7 +119,7 @@ def get_schedule(team: db.Team, request: ScheduleRequest) -> Schedule:
         .where(db.AssignedTeamRole.team_id == team.id)
         .where(db.Role.name == "Developer")
     ).all()
-    logger.debug(f"Schedule for team {team.id} found {len(work_periods)} entries")
+    # logger.debug(f"Schedule for team {team.id} found {len(work_periods)} entries")
     wps_by_user = {}
     sch_by_user: dict[db.User, list[db.Task]] = {}
     for wp in work_periods:
