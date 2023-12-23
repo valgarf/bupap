@@ -36,6 +36,16 @@
         </q-card-section>
       </q-card>
     </div>
+    <!-- Statistics -->
+    <div v-for="stat in estimateStatistics" :key="stat.name">
+      <q-table
+        :rows="stat.rows"
+        :columns="tableColumns"
+        :pagination="{ rowsPerPage: 0 }"
+        flat
+        row-key="taskId"
+      />
+    </div>
     <!-- Query loading / error information -->
     <query-status :loading="loading" :error="error" />
   </q-page>
@@ -54,7 +64,10 @@ import { useQuery } from '@vue/apollo-composable';
 import { gql } from '@apollo/client/core';
 import { useRoute } from 'vue-router';
 import QueryStatus from 'src/components/QueryStatus.vue';
-import { Duration } from 'luxon';
+import { Duration, DateTime } from 'luxon';
+import { parseTimedelta, formatDatetimeMinutes } from 'src/common/helper';
+import { computed } from 'vue';
+
 const route = useRoute();
 
 const { result, loading, error } = useQuery(
@@ -75,6 +88,35 @@ const { result, loading, error } = useQuery(
             numTasksOpen
             numTasksDone
           }
+          estimateStatistics {
+            evaluated
+            numDatapoints
+            shiftOptimistic
+            shiftAverage
+            shiftPessimistic
+            estimateType {
+              name
+              description
+              minDatapoints
+              maxDatapoints
+            }
+            sufficient
+            datapoints {
+              value
+              actualWork
+              numWorkPeriods
+              start
+              end
+              estimate {
+                dbId
+                task {
+                  dbId
+                  name
+                }
+                estimatedDuration
+              }
+            }
+          }
         }
       }
     }
@@ -83,6 +125,84 @@ const { result, loading, error } = useQuery(
     dbId: parseInt(route.params.id),
   }
 );
+
+function convertDatapoint(dp) {
+  console.log(dp.estimate.estimatedDuration);
+  return {
+    taskId: dp.estimate.task.dbId,
+    taskName: dp.estimate.task.name,
+    value: Math.round(dp.value * 100) / 100,
+    estimate: parseTimedelta(dp.estimate.estimatedDuration),
+    actualWork: parseTimedelta(dp.actualWork),
+    start: DateTime.fromISO(dp.start),
+    end: DateTime.fromISO(dp.end),
+  };
+}
+
+function convertEstimateStatistics(stat) {
+  const rows = stat.datapoints.map(convertDatapoint);
+  return { rows, name: stat.estimateType.name };
+}
+
+const estimateStatistics = computed(() => {
+  if (result.value?.user?.estimateStatistics == null) {
+    return [];
+  }
+
+  return result.value.user.estimateStatistics.map(convertEstimateStatistics);
+});
+
+const tableColumns = [
+  {
+    label: 'Task Id',
+    name: 'taskId',
+    field: 'taskId',
+    align: 'left',
+    sortable: true,
+  },
+  {
+    label: 'Task Name',
+    name: 'taskName',
+    field: 'taskName',
+    align: 'left',
+    sortable: true,
+  },
+  {
+    label: 'Value',
+    name: 'value',
+    field: 'value',
+    align: 'right',
+    sortable: true,
+  },
+  {
+    label: 'Estimated Duration',
+    name: 'estimate',
+    field: (row) => row.estimate.toFormat('hh:mm'),
+    align: 'right',
+    sortable: true,
+  },
+  {
+    label: 'Worked Duration',
+    name: 'actualWork',
+    field: (row) => row.actualWork.toFormat('hh:mm'),
+    align: 'right',
+    sortable: true,
+  },
+  {
+    label: 'Start',
+    name: 'start',
+    field: (row) => formatDatetimeMinutes(row.start),
+    align: 'right',
+    sortable: true,
+  },
+  {
+    label: 'End',
+    name: 'end',
+    field: (row) => formatDatetimeMinutes(row.end),
+    align: 'right',
+    sortable: true,
+  },
+];
 
 function format_duration(v) {
   v = v.split('.')[0]; // remove any milliseconds
