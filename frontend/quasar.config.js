@@ -92,6 +92,7 @@ module.exports = configure(function (/* ctx */) {
       // vitePlugins: [
       //   [ 'package-name', { ..options.. } ]
       // ]
+
     },
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#devServer
@@ -107,6 +108,9 @@ module.exports = configure(function (/* ctx */) {
             '^/graphql': '/graphql'
           }
         }
+      }, 
+      watch: {
+        ignored: ['**/node_modules/**']
       }
     },
 

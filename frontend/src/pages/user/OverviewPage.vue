@@ -37,14 +37,77 @@
       </q-card>
     </div>
     <!-- Statistics -->
-    <div v-for="stat in estimateStatistics" :key="stat.name">
-      <q-table
-        :rows="stat.rows"
-        :columns="tableColumns"
-        :pagination="{ rowsPerPage: 0 }"
-        flat
-        row-key="taskId"
-      />
+    <div
+      v-for="stat in estimateStatistics"
+      :key="stat.name"
+      class="column items-stretch"
+    >
+      <q-card>
+        <q-card-section>
+          <div class="text-h6 text-center">{{ stat.name }}</div>
+        </q-card-section>
+        <q-card-section>
+          <div class="row items-center">
+            <div class="column q-mx-sm">
+              <div class="text-weight-bold">summary</div>
+              <div>range: {{ stat.range }}</div>
+              <div>average: {{ stat.average }}</div>
+              <div>#datapoints: {{ stat.count }}</div>
+              <div>{{ stat.evaluated }}</div>
+            </div>
+            <apexchart
+              height="300"
+              type="bar"
+              :options="stat.plot.options"
+              :series="stat.plot.series"
+              class="col-grow"
+            ></apexchart>
+          </div>
+        </q-card-section>
+        <q-card-actions>
+          <q-space />
+
+          <q-btn
+            color="grey"
+            round
+            flat
+            dense
+            :icon="
+              expanded[stat.name] ? 'keyboard_arrow_up' : 'keyboard_arrow_down'
+            "
+            @click="expanded[stat.name] = !expanded[stat.name]"
+          />
+        </q-card-actions>
+        <q-slide-transition>
+          <div v-show="expanded[stat.name]">
+            <q-separator />
+            <q-card-section class="text-subtitle1"> Datapoints </q-card-section>
+            <q-card-section>
+              <!-- <div :id="'plot-' + stat.name" /> -->
+              <q-table
+                :rows="stat.rows"
+                :columns="tableColumns"
+                :pagination="{ rowsPerPage: 0 }"
+                flat
+                row-key="taskId"
+              />
+            </q-card-section>
+          </div>
+        </q-slide-transition>
+        <!-- Reserve width TODO: any better idea? -->
+        <div class="invisible plot">
+          <q-card-section>
+            <!-- <div :id="'plot-' + stat.name" /> -->
+            <q-table
+              :rows="stat.rows"
+              :columns="tableColumns"
+              :pagination="{ rowsPerPage: 0 }"
+              flat
+              row-key="taskId"
+            />
+          </q-card-section>
+        </div>
+      </q-card>
     </div>
     <!-- Query loading / error information -->
     <query-status :loading="loading" :error="error" />
@@ -58,6 +121,9 @@
 .summaries {
   max-width: max(50%, 500px);
 }
+.plot.invisible {
+  height: 0px;
+}
 </style>
 <script setup>
 import { useQuery } from '@vue/apollo-composable';
@@ -65,8 +131,14 @@ import { gql } from '@apollo/client/core';
 import { useRoute } from 'vue-router';
 import QueryStatus from 'src/components/QueryStatus.vue';
 import { Duration, DateTime } from 'luxon';
-import { parseTimedelta, formatDatetimeMinutes } from 'src/common/helper';
-import { computed } from 'vue';
+import {
+  parseTimedelta,
+  formatDatetimeMinutes,
+  histogram,
+} from 'src/common/helper';
+import { computed, ref, watchEffect } from 'vue';
+import { getCssVar } from 'quasar';
+import Apexchart from 'vue3-apexcharts';
 
 const route = useRoute();
 
@@ -99,6 +171,7 @@ const { result, loading, error } = useQuery(
               description
               minDatapoints
               maxDatapoints
+              relative
             }
             sufficient
             datapoints {
@@ -127,7 +200,6 @@ const { result, loading, error } = useQuery(
 );
 
 function convertDatapoint(dp) {
-  console.log(dp.estimate.estimatedDuration);
   return {
     taskId: dp.estimate.task.dbId,
     taskName: dp.estimate.task.name,
@@ -141,8 +213,64 @@ function convertDatapoint(dp) {
 
 function convertEstimateStatistics(stat) {
   const rows = stat.datapoints.map(convertDatapoint);
-  return { rows, name: stat.estimateType.name };
+  const dpValues = stat.datapoints.map((dp) => dp.value);
+  dpValues.sort();
+  const hgdata = histogram(dpValues);
+  const plotOptions = {
+    title: {
+      text: stat.estimateType.relative
+        ? 'Actual Duration / Estimated Duration'
+        : 'Actual Duration - Estimated Duration',
+      align: 'left',
+    },
+    plotOptions: {
+      bar: {
+        horizontal: false,
+        columnWidth: '100%',
+      },
+    },
+    dataLabels: {
+      enabled: false,
+    },
+    chart: {
+      id: 'apex-bar-' + stat.name,
+    },
+    colors: [
+      getCssVar('primary'),
+      getCssVar('secondary'),
+      getCssVar('negative'),
+    ],
+    markers: {
+      size: 4,
+      hover: {
+        sizeOffset: 6,
+      },
+    },
+    xaxis: {
+      categories: hgdata.binsFormatted,
+    },
+  };
+  const plotSeries = [
+    {
+      name: '',
+      data: hgdata.counts,
+    },
+  ];
+
+  const optFormatted = stat.shiftOptimistic.toPrecision(3);
+  const pesFormatted = stat.shiftPessimistic.toPrecision(3);
+  return {
+    rows,
+    name: stat.estimateType.name,
+    range: `${optFormatted} - ${pesFormatted}`,
+    average: stat.shiftAverage.toPrecision(3),
+    count: dpValues.length,
+    evaluated: formatDatetimeMinutes(DateTime.fromISO(stat.evaluated)),
+    plot: { options: plotOptions, series: plotSeries },
+  };
 }
+
+const expanded = ref({});
 
 const estimateStatistics = computed(() => {
   if (result.value?.user?.estimateStatistics == null) {

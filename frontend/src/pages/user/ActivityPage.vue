@@ -10,6 +10,7 @@
         <div>{{ entry.details }}</div>
       </q-timeline-entry>
     </q-timeline>
+    <query-status :loading="loading" :error="error" />
   </q-page>
 </template>
 <script setup>

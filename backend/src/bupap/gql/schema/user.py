@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 import sqlalchemy as sa
 import strawberry
@@ -10,6 +10,9 @@ from bupap.common import toUTC
 from ..common.db_type import DBConvExtension, DBType, map_to_db
 from .common import Timedelta
 from .estimate import EstimateStatistics
+
+if TYPE_CHECKING:
+    from .project import Project
 
 
 @strawberry.type
