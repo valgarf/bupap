@@ -24,6 +24,8 @@ class InterceptHandler(logging.Handler):
 
 
 def configure_logging():
+    logging.getLogger("strawberry.execution").setLevel(logging.DEBUG)
     logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
     if settings.logging.show_sql_commands:
         logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
+    logger.debug("Configured logger")

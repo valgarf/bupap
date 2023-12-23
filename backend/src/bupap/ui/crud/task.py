@@ -191,15 +191,20 @@ def get_estimate_data(
     session: db.Session, user_id, estimate_type_id, before: datetime | None = None
 ) -> list[db.Estimate]:
     db_estimate_type = session.get(db.EstimateType, estimate_type_id)
+
+    other_users_helped = sa.exists(
+        sa.select(db.WorkPeriodTask).where(
+            (db.WorkPeriodTask.task_id == db.Task.id) & (db.WorkPeriodTask.user_id != user_id)
+        )
+    )
+
     query = (
         sa.select(db.Estimate)
         .join(db.Estimate.task)
-        .join(db.Task.work_periods)
+        .where(~other_users_helped)
         .where(db.Estimate.estimate_type_id == estimate_type_id)
         .where(db.Estimate.user_id == user_id)
         .where(db.Task.task_state == db.TaskState.DONE)
-        .where(user_id == db.WorkPeriod.user_id)
-        .group_by(db.Estimate.id)
     )
     if before is not None:
         query = query.where(db.Task.finished_at < before)

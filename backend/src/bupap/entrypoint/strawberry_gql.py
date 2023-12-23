@@ -1,40 +1,25 @@
-import cProfile
-import logging
-import os
-import pstats
 import random
-import secrets
 import string
-import subprocess
-import sys
-from dataclasses import dataclass
 from pathlib import Path
 
-import sqlalchemy as sa
 import uvicorn
-from fastapi import HTTPException, Request, Response
-from fastapi.responses import RedirectResponse
 from icecream import install
 from loguru import logger
-from nicegui import app, dependencies, ui
+from nicegui import app
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
-from bupap import db, permissions
-from bupap.avatar import install_style, random_avatar
+from bupap import db
+from bupap.avatar import install_style
 from bupap.config import settings
 from bupap.db.database import get_database
 from bupap.db.testdata import add_testdata
 from bupap.entrypoint.bupap_alembic import upgrade_head
 from bupap.gql import ContextGraphql
 from bupap.gql.schema import schema
-from bupap.injection import Inject
 from bupap.log_config import configure_logging
-from bupap.ui import crud, page
-from bupap.ui.common import LoginRequiredException
-from bupap.ui.component import Gantt, Router
 
 MAIN_FILE = Path(__file__).resolve()
 
@@ -49,8 +34,8 @@ def startup():
     if settings.editable:
         install()
         ic.configureOutput(includeContext=True)
-    upgrade_head()
     configure_logging()
+    upgrade_head()
     install_style()
     initialise_database()
 
@@ -61,8 +46,6 @@ class DBMiddleware:
 
     async def __call__(self, scope, receive, send):
         with get_database().session() as session:
-            from icecream import ic
-
             scope["db_session"] = session
             await self.app(scope, receive, send)
 

@@ -1,12 +1,15 @@
 from datetime import datetime, timedelta
 from typing import Annotated
 
+import sqlalchemy as sa
 import strawberry
 
 from bupap import db
 from bupap.common import toUTC
 
 from ..common.db_type import DBConvExtension, DBType, map_to_db
+from .common import Timedelta
+from .estimate import EstimateStatistics
 
 
 @strawberry.type
@@ -22,6 +25,9 @@ class UserProjectSummary:
     project: Annotated["Project", strawberry.lazy(".project")] = strawberry.field(
         extensions=[DBConvExtension()]
     )
+    total_duration: Timedelta
+    num_tasks_open: int
+    num_tasks_done: int
 
 
 @strawberry.type
@@ -40,6 +46,10 @@ class User(DBType, strawberry.relay.Node):
     def project_summaries(self) -> list[UserProjectSummary]:
         return resolve_project_summaries(self)
 
+    @strawberry.field
+    def estimate_statistics(self) -> list[EstimateStatistics]:
+        return resolve_estimate_statistics(self)
+
 
 def format_timedelta(td: timedelta):
     m = round(td.total_seconds() / 60)
@@ -51,8 +61,49 @@ def format_timedelta(td: timedelta):
 
 def resolve_project_summaries(user: User) -> list[UserProjectSummary]:
     db_user: db.User = user.db_obj
-    projects = [proj for tr in db_user.team_roles for proj in tr.team.projects]
-    return [UserProjectSummary(project=p) for p in projects]
+
+    project_data = {}
+
+    def _get_task_data(task):
+        return project_data.setdefault(
+            task.project.id,
+            {
+                "project": task.project,
+                "total_duration": timedelta(),
+                "task_open_ids": set(),
+                "task_done_ids": set(),
+            },
+        )
+
+    for wp in db_user.work_periods:
+        if isinstance(wp, db.WorkPeriodTask):
+            data = _get_task_data(wp.task)
+            if wp.duration is not None:
+                data["total_duration"] += wp.duration
+            if wp.task.task_state in [
+                # db.TaskState.IN_PROGRESS,
+                db.TaskState.PLANNING,
+                db.TaskState.SCHEDULED,
+            ]:
+                data["task_open_ids"].add(wp.task.id)
+            if wp.task.task_state in [db.TaskState.DONE]:
+                data["task_done_ids"].add(wp.task.id)
+    for task in db_user.tasks:
+        if task.task_state in [db.TaskState.DONE]:
+            continue
+        _get_task_data(task)["task_open_ids"].add(task.id)
+
+    projects = sorted(project_data.values(), key=lambda data: data["total_duration"], reverse=True)
+
+    return [
+        UserProjectSummary(
+            project=p["project"],
+            total_duration=p["total_duration"],
+            num_tasks_open=len(p["task_open_ids"]),
+            num_tasks_done=len(p["task_done_ids"]),
+        )
+        for p in projects
+    ]
 
 
 def resolve_activity(user: User) -> list[UserActivity]:
@@ -85,3 +136,19 @@ def resolve_activity(user: User) -> list[UserActivity]:
             entries.append(UserActivity(at=toUTC(wp.started_at), short=short))
     entries.sort(key=lambda el: (el.at, el.order), reverse=True)
     return entries
+
+
+def resolve_estimate_statistics(
+    user: User,
+) -> EstimateStatistics | None:
+    result = []
+    db_user: db.User = user.db_obj
+    session = sa.inspect(db_user).session
+    for db_estimate_type in session.scalars(sa.select(db.EstimateType)):
+        existing = [s for s in db_user.estimate_statistics if s.estimate_type == db_estimate_type]
+        if not existing:
+            continue
+            # we could still show the data
+        existing.sort(key=lambda s: s.evaluated)
+        result.append(EstimateStatistics(existing[-1]))
+    return result

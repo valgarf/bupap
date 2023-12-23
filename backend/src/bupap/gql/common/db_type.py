@@ -86,9 +86,10 @@ class DBConvExtension(FieldExtension):
                 if not isinstance(result, (list, tuple)):
                     raise RuntimeError(f"Expected a list for field {self.field}. Value: {result}")
                 return [self.convert(type_.of_type, el) for el in result]
-            if issubclass(type_, DBType):
+            if not isinstance(type_, strawberry.custom_scalar.ScalarWrapper) and issubclass(
+                type_, DBType
+            ):
                 result = type_(result)
-            # TODO: check if scalar type in else case?
             return result
         except Exception as exc:
             raise

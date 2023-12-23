@@ -24,7 +24,7 @@ more-itertools = "^9.1.0"
 appdirs = "^1.4.4"
 alembic = "^1.11.1"
 jinja2 = "^3.1.2"
-strawberry-graphql = {extras = ["debug-server"], version = "^0.217.0"}
+strawberry-graphql = {extras = ["cli", "debug-server"], version = "^0.217.0"}
 pytz = "^2023.3.post1"
 
 [tool.poetry.group.dev.dependencies]
