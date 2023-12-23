@@ -70,7 +70,11 @@ class DBMiddleware:
 graphql_app = ContextGraphql(schema, debug=settings.editable)
 secret_key = settings.session_secret
 if not secret_key:
+    logger.warning(
+        "No secret key for session defined. Using a random one. Restarts will log out users."
+    )
     secret_key = "".join(random.choices(string.ascii_letters + string.digits, k=16))
+
 app = Starlette(
     debug=settings.editable,
     on_startup=[startup],
@@ -79,7 +83,13 @@ app = Starlette(
             CORSMiddleware, allow_origins=["*"], allow_headers=["*"], allow_credentials=True
         ),
         Middleware(DBMiddleware),
-        Middleware(SessionMiddleware, secret_key=secret_key, https_only=False, same_site="lax"),
+        Middleware(
+            SessionMiddleware,
+            session_cookie="login_session",
+            secret_key=secret_key,
+            https_only=False,
+            same_site="lax",
+        ),
     ],
 )
 app.add_route("/graphql", graphql_app)
@@ -92,6 +102,7 @@ def main():
         port=settings.graphql_port,
         host=settings.host,
         log_level="info",
+        reload=settings.uvicorn.reload,
     )
 
 

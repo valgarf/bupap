@@ -5,6 +5,9 @@ port=8123
 graphql_port=8124
 testdata=true
 
+    [default.uvicorn]
+    reload="@bool @jinja {{this.editable}}"
+
     [default.logging]
     show_sql_commands=false
 

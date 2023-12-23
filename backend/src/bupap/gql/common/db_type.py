@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import dataclasses
-from functools import cached_property
+import inspect
+from functools import cached_property, lru_cache
 from types import UnionType
 from typing import (
     TYPE_CHECKING,
@@ -32,20 +33,41 @@ if TYPE_CHECKING:
 
 def map_to_db(attr_name: str | None = None, **kwargs):
     """
-    Map the field to a
+    Map the field to a database attribute / relationship
     """
 
+    # we do not directly create a resolver, attr_name might be empty. Instead the DBAttrExtension
+    # will use the parsed field to get an attribute name (if none is given as input).
     def raise_resolve(root: DBType, info: Any):
         raise NotImplementedError()
 
     kwargs["resolver"] = raise_resolve
-    kwargs["extensions"] = [DBAttrExtension(attr_name)]
+
+    kwargs["extensions"] = [DBAttrExtension(attr_name), DBConvExtension()] + kwargs.get(
+        "extensions", []
+    )
     return strawberry.field(**kwargs)
 
 
 class DBAttrExtension(FieldExtension):
-    def __init__(self, attr_name: str | None, converter: Callable[[Any], Any] | None = None):
+    def __init__(self, attr_name: str | None):
         self.attr_name = attr_name
+
+    def resolve(self, next_: Callable[..., Any], source: Any, info: Info, **kwargs):
+        return getattr(source.db_obj, self.attr_name)
+
+    def apply(self, field: StrawberryField) -> None:
+        if self.attr_name is None:
+            self.attr_name = field.python_name
+
+
+@lru_cache(maxsize=1024)
+def resolve_lazy_type(type_: LazyType) -> Type:
+    return type_.resolve_type()
+
+
+class DBConvExtension(FieldExtension):
+    def __init__(self, converter: Callable[[Any], Any] | None = None):
         self.converter = None
 
     @cached_property
@@ -57,7 +79,7 @@ class DBAttrExtension(FieldExtension):
             if result is None:
                 return None
             if isinstance(type_, LazyType):
-                type_ = type_.resolve_type()
+                type_ = resolve_lazy_type(type_)
             if isinstance(type_, StrawberryOptional):
                 return self.convert(type_.of_type, result)
             if isinstance(type_, StrawberryList):
@@ -69,22 +91,29 @@ class DBAttrExtension(FieldExtension):
             # TODO: check if scalar type in else case?
             return result
         except Exception as exc:
-            ic(exc, type_)
             raise
 
     def resolve(self, next_: Callable[..., Any], source: Any, info: Info, **kwargs):
-        result = getattr(source.db_obj, self.attr_name)
+        result = next_(source, info, **kwargs)
         if self.converter is not None:
             result = self.converter(result)
         elif self.field.type_annotation is not None:
             result = self.convert(self.resolved_type, result)
+        return result
 
+    async def resolve_async(self, next_: Callable[..., Any], source: Any, info: Info, **kwargs):
+        result = next_(source, info, **kwargs)
+        if inspect.isawaitable(result):
+            result = await result
+        if self.converter is not None:
+            result = self.converter(result)
+        elif self.field.type_annotation is not None:
+            result = self.convert(self.resolved_type, result)
         return result
 
     def apply(self, field: StrawberryField) -> None:
         self.field = field
-        if self.attr_name is None:
-            self.attr_name = field.python_name
+        # TODO: analyze type and disable conversion for scalar types?
 
 
 @dataclasses.dataclass

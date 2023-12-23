@@ -1,11 +1,12 @@
 from datetime import datetime, timedelta
+from typing import Annotated
 
 import strawberry
 
 from bupap import db
 from bupap.common import toUTC
 
-from ..common.db_type import DBType, map_to_db
+from ..common.db_type import DBConvExtension, DBType, map_to_db
 
 
 @strawberry.type
@@ -14,6 +15,13 @@ class UserActivity:
     short: str
     details: str = ""
     order: strawberry.Private[int] = 0
+
+
+@strawberry.type
+class UserProjectSummary:
+    project: Annotated["Project", strawberry.lazy(".project")] = strawberry.field(
+        extensions=[DBConvExtension()]
+    )
 
 
 @strawberry.type
@@ -28,6 +36,10 @@ class User(DBType, strawberry.relay.Node):
     def activity(self) -> list[UserActivity]:
         return resolve_activity(self)
 
+    @strawberry.field
+    def project_summaries(self) -> list[UserProjectSummary]:
+        return resolve_project_summaries(self)
+
 
 def format_timedelta(td: timedelta):
     m = round(td.total_seconds() / 60)
@@ -35,6 +47,12 @@ def format_timedelta(td: timedelta):
     m -= h * 60
     result = f"{h}:{m:02}"
     return result
+
+
+def resolve_project_summaries(user: User) -> list[UserProjectSummary]:
+    db_user: db.User = user.db_obj
+    projects = [proj for tr in db_user.team_roles for proj in tr.team.projects]
+    return [UserProjectSummary(project=p) for p in projects]
 
 
 def resolve_activity(user: User) -> list[UserActivity]:
