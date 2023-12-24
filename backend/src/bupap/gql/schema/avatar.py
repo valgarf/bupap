@@ -7,6 +7,7 @@ import strawberry
 from python_avatars.svg_parser import SVGParser
 
 from bupap import db
+from bupap.avatar import deserialize_avatar, serialize_avatar
 
 from ..common.db_type import DBType, map_to_db
 
@@ -56,7 +57,31 @@ class Avatar:
 
     @strawberry.field()
     def svg(self) -> str:
-        avatar = pa.Avatar(
+        return self.to_avatar_lib().render()
+
+    @classmethod
+    def from_avatar_lib(cls, value: pa.Avatar) -> Self:
+        return Avatar(
+            background_color=value.background_color,
+            top=AvatarPart(part=value.top),
+            hat_color=value.hat_color,
+            eyebrows=AvatarPart(part=value.eyebrows),
+            eyes=AvatarPart(part=value.eyes),
+            nose=AvatarPart(part=value.nose),
+            mouth=AvatarPart(part=value.mouth),
+            beard=AvatarPart(part=value.facial_hair),
+            skin_color=value.skin_color,
+            hair_color=value.hair_color,
+            beard_color=value.facial_hair_color,
+            accessory=AvatarPart(part=value.accessory),
+            clothing=AvatarPart(part=value.clothing),
+            clothing_color=value.clothing_color,
+            graphic=AvatarPart(part=value.shirt_graphic),
+            shirt_text=value.shirt_text,
+        )
+
+    def to_avatar_lib(self) -> pa.Avatar:
+        return pa.Avatar(
             style="bupap_avatar",
             background_color=self.background_color,
             top=self.top.part,
@@ -76,56 +101,13 @@ class Avatar:
             shirt_text=self.shirt_text,
             title=None,
         )
-        return avatar.render()
 
     @classmethod
-    def from_json(cls, value: str):
-        data = json.loads(value)
-
-        return Avatar(
-            background_color=data["background_color"],
-            top=AvatarPart(
-                part=pa.HairType(data["hair"]) if data["hair"] else pa.HatType(data["hat"])
-            ),
-            hat_color=data["hat_color"],
-            eyebrows=AvatarPart(part=pa.EyebrowType(data["eyebrows"])),
-            eyes=AvatarPart(part=pa.EyeType(data["eyes"])),
-            nose=AvatarPart(part=pa.NoseType(data["nose"])),
-            mouth=AvatarPart(part=pa.MouthType(data["mouth"])),
-            beard=AvatarPart(part=pa.FacialHairType(data["facial_hair"])),
-            skin_color=data["skin_color"],
-            hair_color=data["hair_color"],
-            beard_color=data["facial_hair_color"],
-            accessory=AvatarPart(part=pa.AccessoryType(data["accessory"])),
-            clothing=AvatarPart(part=pa.ClothingType(data["clothing"])),
-            clothing_color=data["clothing_color"],
-            graphic=AvatarPart(part=pa.ClothingGraphic(data["shirt_graphic"])),
-            shirt_text=data["shirt_text"],
-        )
+    def from_json(cls, value: str) -> Self:
+        return cls.from_avatar_lib(deserialize_avatar(value))
 
     def to_json(self: Self) -> str:
-        return json.dumps(
-            {
-                "background_color": str(self.background_color),
-                "hat": str(self.top.part) if isinstance(self.top, pa.HatType) else None,
-                "hair": str(self.top.part) if isinstance(self.top, pa.HairType) else None,
-                "hat_color": str(self.hat_color),
-                "eyebrows": str(self.eyebrows.part),
-                "eyes": str(self.eyes.part),
-                "nose": str(self.nose.part),
-                "mouth": str(self.mouth.part),
-                "facial_hair": str(self.beard.part),
-                "skin_color": str(self.skin_color),
-                "hair_color": str(self.hair_color),
-                "facial_hair_color": str(self.beard_color),
-                "accessory": str(self.accessory.part),
-                "clothing": str(self.clothing.part),
-                "clothing_color": str(self.clothing_color),
-                "shirt_graphic": str(self.graphic.part),
-                "shirt_text": str(self.shirt_text),
-                "title": "",
-            }
-        )
+        return serialize_avatar(self.to_avatar_lib())
 
 
 @strawberry.input
