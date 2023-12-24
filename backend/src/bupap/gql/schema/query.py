@@ -13,6 +13,7 @@ from bupap import db
 from bupap.common.enums import RoleType
 from bupap.gql.common.context import InfoContext
 
+from .avatar import AvatarAPI, get_avatar_api
 from .project import Project
 from .role import AssignedTeamRole, Role
 from .team import Team
@@ -68,3 +69,4 @@ class Query:
     teams: list[Team] = strawberry.field(resolver=get_all_teams)
     users: list[User] = strawberry.field(resolver=get_all_users)
     projects: list[Project] = strawberry.field(resolver=get_all_projects)
+    avatar_api: AvatarAPI = strawberry.field(resolver=get_avatar_api)

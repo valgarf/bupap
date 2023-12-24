@@ -8,6 +8,7 @@ from bupap import db
 from bupap.common import toUTC
 
 from ..common.db_type import DBConvExtension, DBType, map_to_db
+from .avatar import Avatar
 from .common import Timedelta
 from .estimate import EstimateStatistics
 
@@ -40,6 +41,10 @@ class User(DBType, strawberry.relay.Node):
     name: str = map_to_db()
     full_name: str = map_to_db()
     rendered_avatar: str = map_to_db()
+
+    @strawberry.field
+    def avatar(self) -> Avatar:
+        return Avatar.from_json(self.db_obj.avatar)
 
     @strawberry.field
     def activity(self) -> list[UserActivity]:
