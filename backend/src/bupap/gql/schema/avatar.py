@@ -7,7 +7,7 @@ import strawberry
 from python_avatars.svg_parser import SVGParser
 
 from bupap import db
-from bupap.avatar import deserialize_avatar, serialize_avatar
+from bupap.avatar import deserialize_avatar, random_avatar, serialize_avatar
 
 from ..common.db_type import DBType, map_to_db
 
@@ -164,6 +164,10 @@ class AvatarAPI:
             background_color=avatar.background_color,
             shirt_text=avatar.shirt_text,
         )
+
+    @strawberry.field
+    def random(self) -> Avatar:
+        return Avatar.from_avatar_lib(random_avatar())
 
 
 @cache
