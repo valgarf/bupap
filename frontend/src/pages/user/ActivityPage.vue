@@ -66,7 +66,6 @@ const timeline = computed(() => {
     idx += 1;
   }
 
-  console.log(timeline);
   return timeline;
 });
 </script>

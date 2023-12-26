@@ -7,7 +7,9 @@ folder = Path(__file__).parent
 
 
 def random_avatar():
-    return pa.Avatar.random(style="bupap_avatar")
+    result = pa.Avatar.random(style="bupap_avatar")
+    result.shirt_text = ""
+    return result
 
 
 def install_style():

@@ -61,6 +61,6 @@ export function histogram(data) {
         count += 1
     }
     next_bin(true)
-    console.log(data, binsFormatted, counts)
+    // console.log(data, binsFormatted, counts)
     return {binsStart, binsCenter, binsEnd, binsFormatted, counts}
 }

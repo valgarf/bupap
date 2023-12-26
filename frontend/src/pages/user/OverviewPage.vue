@@ -12,6 +12,13 @@
     <div v-if="result" class="self-center text-body2 text-blue-grey-5">
       @{{ result?.user?.name }}
     </div>
+    <ProfileEditDialog v-model="editDialog" />
+    <q-btn
+      label="Edit Profile"
+      @click="editDialog = true"
+      color="primary"
+      class="q-my-md"
+    />
     <!-- Project summaries -->
     <div v-if="result" class="row justify-center items-start summaries">
       <q-card
@@ -66,13 +73,12 @@
         </q-card-section>
         <q-card-actions>
           <q-space />
-
           <q-btn
             color="grey"
-            round
             flat
             dense
-            :icon="
+            label="Datapoints"
+            :icon-right="
               expanded[stat.name] ? 'keyboard_arrow_up' : 'keyboard_arrow_down'
             "
             @click="expanded[stat.name] = !expanded[stat.name]"
@@ -95,7 +101,7 @@
           </div>
         </q-slide-transition>
         <!-- Reserve width TODO: any better idea? -->
-        <div class="invisible plot">
+        <div class="invisible table">
           <q-card-section>
             <!-- <div :id="'plot-' + stat.name" /> -->
             <q-table
@@ -121,7 +127,7 @@
 .summaries {
   max-width: max(50%, 500px);
 }
-.plot.invisible {
+.invisible.table {
   height: 0px;
 }
 </style>
@@ -139,6 +145,9 @@ import {
 import { computed, ref, watchEffect } from 'vue';
 import { getCssVar } from 'quasar';
 import Apexchart from 'vue3-apexcharts';
+import ProfileEditDialog from './ProfileEditDialog.vue';
+
+const editDialog = ref(false);
 
 const route = useRoute();
 
