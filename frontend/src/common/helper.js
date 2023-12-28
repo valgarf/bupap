@@ -63,7 +63,6 @@ export function histogram(data) {
         count += 1
     }
     next_bin(true)
-    // console.log(data, binsFormatted, counts)
     return {binsStart, binsCenter, binsEnd, binsFormatted, counts}
 }
 
@@ -75,7 +74,6 @@ export function lastNonNull(reference) {
     //         console.log(reference.value)
     //         return reference.value;
     //     }
-    //     console.log(_lastValue)
     //     return _lastValue;
     // });
     const result = ref(null)

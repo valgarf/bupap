@@ -17,7 +17,6 @@ export const useActiveUserStore = defineStore('activeUser', {
   actions: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resultHander(result: any) {
-      console.info('user result:', result)
       result = result?.data?.user
       this.name = result?.name
       this.fullName = result?.fullName
@@ -64,7 +63,6 @@ export const useActiveUserStore = defineStore('activeUser', {
       query.onError(this.errorHandler)
     },
     fetchUser() {
-      console.info('fetch user')
       const query = provideApolloClient(apolloClient)(() => useQuery(gql`
         query activeUser {
           user: activeUser {

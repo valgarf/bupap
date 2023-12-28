@@ -18,6 +18,9 @@
         :key="'btn-' + part"
         color="secondary"
         class="q-pa-sm"
+        :disable="
+          part == 'graphic' && renderInput['clothing'] != 'GRAPHIC_SHIRT'
+        "
       >
         <div
           v-html="partDict[part][renderInput[part]] || 'None'"
@@ -28,9 +31,12 @@
       <q-input
         v-model="shirtText"
         label="Shirt Text"
-        placeholder="None"
         class="part-input"
         debounce="250"
+        :disable="
+          renderInput['graphic'] != 'CUSTOM_TEXT' ||
+          renderInput['clothing'] != 'GRAPHIC_SHIRT'
+        "
       />
       <q-dialog
         v-for="part in Object.keys(partDict)"

@@ -180,7 +180,6 @@ def resolve_estimate_statistics(
 def resolve_update_user(info: InfoContext, user_id: int, user: UserInput):
     session = info.context.db_session
     db_user = session.get(db.User, user_id)
-    from icecream import ic
 
     if user.name != None:
         db_user.name = user.name
