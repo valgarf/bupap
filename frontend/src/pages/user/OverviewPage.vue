@@ -12,7 +12,11 @@
     <div v-if="result" class="self-center text-body2 text-blue-grey-5">
       @{{ result?.user?.name }}
     </div>
-    <ProfileEditDialog v-model="editDialog" />
+    <ProfileEditDialog
+      v-model="editDialog"
+      :userId="parseInt(route.params.id)"
+      @success="refetch"
+    />
     <q-btn
       label="Edit Profile"
       @click="editDialog = true"
@@ -151,7 +155,7 @@ const editDialog = ref(false);
 
 const route = useRoute();
 
-const { result, loading, error } = useQuery(
+const { result, loading, error, refetch } = useQuery(
   gql`
     query getUser($dbId: Int!) {
       user: dbNode(typename: "User", dbId: $dbId) {

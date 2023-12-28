@@ -1,4 +1,6 @@
 import {Duration} from 'luxon'
+import { ref, watchEffect } from 'vue'
+import { colors } from 'quasar'
 
 export function groupBy(elements, keyFn) {
     const result = {}
@@ -63,4 +65,28 @@ export function histogram(data) {
     next_bin(true)
     // console.log(data, binsFormatted, counts)
     return {binsStart, binsCenter, binsEnd, binsFormatted, counts}
+}
+
+export function lastNonNull(reference) {
+    // var _lastValue = null
+    // return computed(() => {
+    //     if (reference.value != null) {
+    //         _lastValue = reference.value;
+    //         console.log(reference.value)
+    //         return reference.value;
+    //     }
+    //     console.log(_lastValue)
+    //     return _lastValue;
+    // });
+    const result = ref(null)
+    watchEffect(() => {
+        if (reference.value != null) {
+            result.value = reference.value
+        }
+    })
+    return result
+}
+
+export function textColorFromBackground(col) {
+    return colors.luminosity(col) <= 0.4 ? 'white' : 'black'
 }

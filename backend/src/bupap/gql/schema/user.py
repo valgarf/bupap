@@ -7,9 +7,10 @@ import strawberry
 from bupap import db
 from bupap.common import toUTC
 
+from ..common.context import InfoContext
 from ..common.db_type import DBConvExtension, DBType, map_to_db
-from .avatar import Avatar
-from .common import Timedelta
+from .avatar import Avatar, AvatarInput
+from .common import MutationResult, Timedelta
 from .estimate import EstimateStatistics
 
 if TYPE_CHECKING:
@@ -57,6 +58,20 @@ class User(DBType, strawberry.relay.Node):
     @strawberry.field
     def estimate_statistics(self) -> list[EstimateStatistics]:
         return resolve_estimate_statistics(self)
+
+
+@strawberry.input
+class UserInput:
+    avatar: AvatarInput | None = None
+    name: str | None = None
+    fullName: str | None = None
+
+
+@strawberry.type
+class UserMutation:
+    @strawberry.field
+    def update(self, info: InfoContext, user_id: int, user: UserInput) -> MutationResult:
+        return resolve_update_user(info, user_id, user)
 
 
 def format_timedelta(td: timedelta):
@@ -160,3 +175,18 @@ def resolve_estimate_statistics(
         existing.sort(key=lambda s: s.evaluated)
         result.append(EstimateStatistics(existing[-1]))
     return result
+
+
+def resolve_update_user(info: InfoContext, user_id: int, user: UserInput):
+    session = info.context.db_session
+    db_user = session.get(db.User, user_id)
+    from icecream import ic
+
+    if user.name != None:
+        db_user.name = user.name
+    if user.fullName != None:
+        db_user.full_name = user.fullName
+    if user.avatar != None:
+        db_user.avatar = user.avatar.to_avatar().to_json()
+
+    return MutationResult(success=True)

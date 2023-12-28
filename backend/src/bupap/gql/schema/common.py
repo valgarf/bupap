@@ -36,3 +36,8 @@ class Period:
     def __init__(self, start: datetime, end: datetime):
         self.start = toUTC(start)
         self.end = toUTC(end)
+
+
+@strawberry.type
+class MutationResult:
+    success: bool

@@ -21,7 +21,7 @@ class AvatarPart:
         return self.part.name
 
     @strawberry.field()
-    def svg(self) -> str:
+    def svg(self) -> str | None:
         return render_part(self.part)
 
 
@@ -131,6 +131,26 @@ class AvatarInput:
 
     shirt_text: str = strawberry.field()
 
+    def to_avatar(self) -> Avatar:
+        return Avatar(
+            top=part_from_name(pa.TopType, self.top),
+            accessory=part_from_name(pa.AccessoryType, self.accessory),
+            eyebrows=part_from_name(pa.EyebrowType, self.eyebrows),
+            eyes=part_from_name(pa.EyeType, self.eyes),
+            nose=part_from_name(pa.NoseType, self.nose),
+            mouth=part_from_name(pa.MouthType, self.mouth),
+            beard=part_from_name(pa.FacialHairType, self.beard),
+            clothing=part_from_name(pa.ClothingType, self.clothing),
+            graphic=part_from_name(pa.ClothingGraphic, self.graphic),
+            skin_color=self.skin_color,
+            hair_color=self.hair_color,
+            beard_color=self.beard_color,
+            hat_color=self.hat_color,
+            clothing_color=self.clothing_color,
+            background_color=self.background_color,
+            shirt_text=self.shirt_text,
+        )
+
 
 @strawberry.type
 class AvatarAPI:
@@ -146,24 +166,7 @@ class AvatarAPI:
 
     @strawberry.field
     def create(self, avatar: AvatarInput) -> Avatar:
-        return Avatar(
-            top=part_from_name(pa.TopType, avatar.top),
-            accessory=part_from_name(pa.AccessoryType, avatar.accessory),
-            eyebrows=part_from_name(pa.EyebrowType, avatar.eyebrows),
-            eyes=part_from_name(pa.EyeType, avatar.eyes),
-            nose=part_from_name(pa.NoseType, avatar.nose),
-            mouth=part_from_name(pa.MouthType, avatar.mouth),
-            beard=part_from_name(pa.FacialHairType, avatar.beard),
-            clothing=part_from_name(pa.ClothingType, avatar.clothing),
-            graphic=part_from_name(pa.ClothingGraphic, avatar.graphic),
-            skin_color=avatar.skin_color,
-            hair_color=avatar.hair_color,
-            beard_color=avatar.beard_color,
-            hat_color=avatar.hat_color,
-            clothing_color=avatar.clothing_color,
-            background_color=avatar.background_color,
-            shirt_text=avatar.shirt_text,
-        )
+        return avatar.to_avatar()
 
     @strawberry.field
     def random(self) -> Avatar:
@@ -171,7 +174,9 @@ class AvatarAPI:
 
 
 @cache
-def render_part(p: pa.core.AvatarPart) -> str:
+def render_part(p: pa.core.AvatarPart) -> str | None:
+    if p.name == "NONE":
+        return None
     svg = SVGParser(pa.core._get_path(type(p), p))
     if isinstance(p, pa.HairType):
         el = svg.get_element_by_id("Hair-Color")
@@ -189,6 +194,11 @@ def render_part(p: pa.core.AvatarPart) -> str:
         el = svg.get_element_by_id("Fabric-Color")
         if el is not None:
             el.set_attr("fill", pa.ClothingColor.BLUE_03)
+        if p == pa.ClothingType.GRAPHIC_SHIRT:
+            el = svg.get_element_by_id("Graphic")
+            if el is not None:
+                graphic = SVGParser(pa.core._get_path(pa.ClothingGraphic, pa.ClothingGraphic.HOLA))
+                el.set_content(graphic.children())
     return svg.render()
 
 

@@ -8,7 +8,7 @@ from strawberry.types import Info
 from bupap import db
 
 from ..common.context import Context, InfoContext
-from .user import User
+from .user import User, UserMutation
 
 
 def login(root, info: InfoContext, name: str, password: str):
@@ -37,3 +37,4 @@ def logout(root, info: InfoContext):
 class Mutation:
     login: User | None = strawberry.field(resolver=login)
     logout: User | None = strawberry.field(resolver=logout)
+    user: UserMutation = strawberry.field(resolver=UserMutation)
