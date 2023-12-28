@@ -2,6 +2,8 @@ import { RouteRecordRaw } from 'vue-router';
 import { default as MainLayout } from 'layouts/MainLayout.vue';
 import { default as TeamLayout } from 'layouts/TeamLayout.vue';
 import { default as UserLayout } from 'layouts/UserLayout.vue';
+import { default as ProjectLayout } from 'layouts/ProjectLayout.vue';
+
 
 import { default as TeamsPage } from 'pages/TeamsPage.vue';
 import { default as UsersPage } from 'pages/UsersPage.vue';
@@ -15,6 +17,9 @@ import { default as TeamSchedulePage } from 'pages/team/SchedulePage.vue';
 
 import { default as UserOverviewPage } from 'pages/user/OverviewPage.vue';
 import { default as UserActivityPage } from 'pages/user/ActivityPage.vue';
+
+import { default as ProjectOverviewPage } from 'pages/project/OverviewPage.vue';
+import { default as ProjectBoardPage } from 'pages/project/BoardPage.vue';
 
 const routes: RouteRecordRaw[] = [
   {
@@ -43,6 +48,15 @@ const routes: RouteRecordRaw[] = [
         children: [
           { path: 'overview', name: 'user-index', component: UserOverviewPage}, 
           { path: 'activity', component: UserActivityPage}, 
+        ]
+      },
+      {
+        path: 'project/:id',
+        redirect: {name:'project-index'},
+        component: ProjectLayout,
+        children: [
+          { path: 'overview', name: 'project-index', component: ProjectOverviewPage},
+          { path: 'board', component: ProjectBoardPage}, 
         ]
       },
     ],
