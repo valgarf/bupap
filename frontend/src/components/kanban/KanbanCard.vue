@@ -99,14 +99,15 @@
 
 <script lang='ts'>
 export interface Tag {
-  text: String;
-  color: String;
+  text: string;
+  color: string;
 }
 
-export interface KanbanCardData {}
+// export interface KanbanCardData {}
 </script>
+
 <script setup lang="ts">
-import { computed, defineProps, ref } from 'vue';
+import { computed, defineProps, defineEmits, ref } from 'vue';
 import { textColorFromBackground } from 'src/common/helper';
 const props = defineProps({
   card: { type: Object as () => Tag },

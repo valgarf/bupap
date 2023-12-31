@@ -82,7 +82,6 @@ const projects = computed(() => {
 const router = useRouter();
 
 function openProject(proj) {
-  console.log('Opening project', proj);
   router.push(`/project/${proj}/`);
   selected.value = null;
 }

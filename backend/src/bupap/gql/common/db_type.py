@@ -20,6 +20,7 @@ from typing import (
 
 import sqlalchemy as sa
 import strawberry
+from strawberry.enum import EnumDefinition
 from strawberry.extensions.field_extension import FieldExtension
 from strawberry.field import StrawberryField
 from strawberry.lazy_type import LazyType
@@ -86,10 +87,13 @@ class DBConvExtension(FieldExtension):
                 if not isinstance(result, (list, tuple)):
                     raise RuntimeError(f"Expected a list for field {self.field}. Value: {result}")
                 return [self.convert(type_.of_type, el) for el in result]
-            if not isinstance(type_, strawberry.custom_scalar.ScalarWrapper) and issubclass(
-                type_, DBType
-            ):
-                result = type_(result)
+            try:
+                if not isinstance(
+                    type_, (strawberry.custom_scalar.ScalarWrapper, EnumDefinition)
+                ) and issubclass(type_, DBType):
+                    result = type_(result)
+            except BaseException as exc:
+                ic(exc, type_)
             return result
         except Exception as exc:
             raise

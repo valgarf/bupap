@@ -1,25 +1,25 @@
 import { RouteRecordRaw } from 'vue-router';
-import { default as MainLayout } from 'layouts/MainLayout.vue';
-import { default as TeamLayout } from 'layouts/TeamLayout.vue';
-import { default as UserLayout } from 'layouts/UserLayout.vue';
-import { default as ProjectLayout } from 'layouts/ProjectLayout.vue';
+import MainLayout from 'layouts/MainLayout.vue';
+import TeamLayout from 'layouts/TeamLayout.vue';
+import UserLayout from 'layouts/UserLayout.vue';
+import ProjectLayout from 'layouts/ProjectLayout.vue';
 
 
-import { default as TeamsPage } from 'pages/TeamsPage.vue';
-import { default as UsersPage } from 'pages/UsersPage.vue';
-import { default as ProjectsPage } from 'pages/ProjectsPage.vue';
-import { default as LoginPage } from 'pages/LoginPage.vue';
-import { default as IndexPage } from 'pages/IndexPage.vue';
+import TeamsPage from 'pages/TeamsPage.vue';
+import UsersPage from 'pages/UsersPage.vue';
+import ProjectsPage from 'pages/ProjectsPage.vue';
+import LoginPage from 'pages/LoginPage.vue';
+import IndexPage from 'pages/IndexPage.vue';
 
-import { default as TeamOverviewPage } from 'pages/team/OverviewPage.vue';
-import { default as TeamMembersPage } from 'pages/team/MembersPage.vue';
-import { default as TeamSchedulePage } from 'pages/team/SchedulePage.vue';
+import TeamOverviewPage from 'pages/team/OverviewPage.vue';
+import TeamMembersPage from 'pages/team/MembersPage.vue';
+import TeamSchedulePage from 'pages/team/SchedulePage.vue';
 
-import { default as UserOverviewPage } from 'pages/user/OverviewPage.vue';
-import { default as UserActivityPage } from 'pages/user/ActivityPage.vue';
+import UserOverviewPage from 'pages/user/OverviewPage.vue';
+import UserActivityPage from 'pages/user/ActivityPage.vue';
 
-import { default as ProjectOverviewPage } from 'pages/project/OverviewPage.vue';
-import { default as ProjectBoardPage } from 'pages/project/BoardPage.vue';
+import ProjectOverviewPage from 'pages/project/OverviewPage.vue';
+import ProjectBoardPage from 'pages/project/BoardPage.vue';
 
 const routes: RouteRecordRaw[] = [
   {

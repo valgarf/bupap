@@ -1,8 +1,9 @@
 <template>
   <q-page class="column q-px-md q-pt-lg">
-    <div v-if="result" class="self-center text-h4 text-weight-bold">
-      {{ result?.dbNode?.name }}
-    </div>
+    <!-- <div v-if="result" class="self-center text-h4 text-weight-bold">
+      {{ result?.project?.name }}
+    </div> -->
+    <KanbanBoard v-if="kanbanData != null" :initial_data="kanbanData" />
     <query-status :loading="loading" :error="error" />
   </q-page>
 </template>
@@ -12,14 +13,44 @@ import { useQuery } from '@vue/apollo-composable';
 import { gql } from '@apollo/client/core';
 import { useRoute } from 'vue-router';
 import QueryStatus from 'src/components/QueryStatus.vue';
+import { DateTime } from 'luxon';
+import { computed } from 'vue';
+import KanbanBoard from 'src/components/kanban/KanbanBoard.vue';
 
 const route = useRoute();
 const { result, loading, error } = useQuery(
   gql`
     query getProject($dbId: Int!) {
-      dbNode(typename: "Project", dbId: $dbId) {
+      project: dbNode(typename: "Project", dbId: $dbId) {
         ... on Project {
           name
+          tasks {
+            id
+            dbId
+            name
+            parent {
+              dbId
+            }
+            tags {
+              text
+              color
+            }
+            state
+            finishedAt
+            orderId
+            attached
+            progress {
+              pessimistic
+              average
+              optimistic
+              active
+            }
+            priority
+          }
+          priorities {
+            text
+            color
+          }
         }
       }
     }
@@ -29,79 +60,105 @@ const { result, loading, error } = useQuery(
   }
 );
 
-// data = KanbanData()
-//         for prio in db.TaskPriority:
-//             data.priorities.append(
-//                 KanbanTag(
-//                     prio.text,
-//                     prio.default_color,
-//                     prio.default_text_color,
-//                 )
-//             )
-//         for state in db.TaskState:
-//             lane = KanbanLaneData(state.name, state.name)
-//             data.lanes[lane.id] = lane
-//             data.lane_order.append(lane.id)
-//             if state in [db.TaskState.REQUEST, db.TaskState.PLANNING, db.TaskState.SCHEDULED]:
-//                 lane.priority_sorted = True
-//             if state in [db.TaskState.DONE, db.TaskState.DONE]:
-//                 lane.finished_sorted = True
-//             tasks = [t for t in project.tasks if t.task_state == state]
-//             if not lane.finished_sorted:
-//                 tasks.sort(key=lambda t: t.order_id or 0)
-//             else:
-//                 tasks.sort(key=lambda t: t.finished_at, reverse=True)
-//             for t in tasks:
-//                 active = False
-//                 progress = None
-//                 if t.scheduled_assignee and t.finished_at is None:
-//                     total_work = timedelta(0)
-//                     for wp in t.work_periods:
-//                         if wp.ended_at:
-//                             total_work += wp.duration
-//                         else:
-//                             active = True
-//                     if total_work:
-//                         est = get_estimate(t.scheduled_assignee, t)
-//                         progress = (
-//                             total_work / est.expectation_pessimistic,
-//                             total_work / est.expectation_average,
-//                             total_work / est.expectation_optimistic,
-//                         )
-//                         progress = tuple(int(min(p, 1) * 100) for p in progress)
-//                 card = KanbanCardData(
-//                     title=t.name,
-//                     id=t.id,
-//                     lane_id=lane.id,
-//                     parent_id=t.parent_id,
-//                     depth=0,
-//                     tags=[],
-//                     detached=not t.attached,
-//                     progress=progress,
-//                     active=active,
-//                     priority=t.task_priority.text,
-//                     link=True,
-//                     finished_at=t.finished_at,
-//                 )
-//                 lane.card_order.append(card.id)
-//                 data.cards[card.id] = card
-//         for card in list(data.cards.values()):
-//             if card.parent_id is not None:
-//                 if not card.parent_id in data.cards:
-//                     print(f"Unkown card id {card.parent_id}")
-//                     del data.cards[card.id]
-//                 else:
-//                     data.cards[card.parent_id].children_order.append(card.id)
+const kanbanData = computed(() => {
+  if (result.value?.project == null) {
+    return null;
+  }
 
-// def _set_depth_rec(card, value: int = 0):
-//             card.depth = value
-//             for child_id in card.children_order:
-//                 _set_depth_rec(data.cards[child_id], value + 1)
+  console.log(result.value);
 
-//         for card in data.cards.values():
-//             if card.parent_id != None:
-//                 continue
-//             _set_depth_rec(card)
+  let proj = result.value.project;
 
-//         kanban = Kanban(data=data)
+  const data = {
+    priorities: [],
+    lanes: {},
+    lane_order: [
+      'REQUEST',
+      'PLANNING',
+      'DEFERRED',
+      'SCHEDULED',
+      'DONE',
+      'DISCARDED',
+      'HOLD',
+    ],
+    cards: {},
+  };
+
+  data.priorities = proj.priorities.map((prio) => {
+    return { ...prio };
+  });
+
+  function addLane(state: str) {
+    const lane = {
+      name: state,
+      id: state,
+      priority_sorted: false,
+      finished_sorted: false,
+      card_order: [],
+    };
+    if (['REQUEST', 'PLANNING', 'SCHEDULED'].includes(state)) {
+      lane.priority_sorted = true;
+    }
+    if (['DONE'].includes(state)) {
+      lane.finished_sorted = true;
+    }
+    data.lanes[state] = lane;
+  }
+
+  for (let lane of data.lane_order) {
+    addLane(lane);
+  }
+
+  for (let task of proj.tasks) {
+    let lane = data.lanes[task.state];
+    const card = {
+      title: task.name,
+      id: task.dbId,
+      lane_id: lane.id,
+      parent_id: task.parent?.dbId,
+      depth: 0,
+      tags: [],
+      detached: !task.attached,
+      progress: [
+        task.progress.pessimistic,
+        task.progress.average,
+        task.progress.optimistic,
+      ],
+      active: task.progress.active,
+      priority: task.priority,
+      link: true,
+      finished_at: task.finished_at,
+      children_order: [],
+    };
+    lane.card_order.push(card.id);
+    data.cards[card.id] = card;
+  }
+
+  for (let card of Object.values(data.cards)) {
+    if (card.parent_id != null) {
+      if (data.cards[card.parent_id] == null) {
+        console.warn(`Unknown card id ${card.parent_id}`);
+        data.cards[card.id] = undefined;
+      } else {
+        data.cards[card.parent_id].children_order.push(card.id);
+      }
+    }
+  }
+
+  function set_depth_rec(card, value = 0) {
+    card.depth = value;
+    for (let child_id of card.children_order) {
+      set_depth_rec(data.cards[child_id], value + 1);
+    }
+  }
+
+  for (let card of Object.values(data.cards)) {
+    if (card.parent_id == null) {
+      set_depth_rec(card);
+    }
+  }
+
+  console.log(data);
+  return data;
+});
 </script>
