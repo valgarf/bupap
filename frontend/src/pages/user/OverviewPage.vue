@@ -1,5 +1,8 @@
 <template>
-  <q-page class="column q-px-md q-pt-lg items-center justify-start">
+  <q-page
+    class="column q-px-md q-pt-lg items-center justify-start"
+    :style-fn="qPageStyleFnForTabs"
+  >
     <!-- User data -->
     <div
       v-if="result?.user != null"
@@ -150,6 +153,7 @@ import { computed, ref, watchEffect } from 'vue';
 import { getCssVar } from 'quasar';
 import Apexchart from 'vue3-apexcharts';
 import ProfileEditDialog from './ProfileEditDialog.vue';
+import { qPageStyleFnForTabs } from 'src/common/helper';
 
 const editDialog = ref(false);
 

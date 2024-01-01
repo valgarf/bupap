@@ -1,5 +1,5 @@
 <template>
-  <q-page class="column q-px-md q-pt-lg">
+  <q-page class="column q-px-md q-pt-lg" :style-fn="qPageStyleFnForTabs">
     <q-breadcrumbs
       v-if="parents != null && parents.length > 0"
       class="self-center q-mb-md"
@@ -69,6 +69,7 @@ import { useRoute, useRouter } from 'vue-router';
 import QueryStatus from 'src/components/QueryStatus.vue';
 import { computed, ref, watchEffect } from 'vue';
 import { listToTree } from 'src/common/tree';
+import { qPageStyleFnForTabs } from 'src/common/helper';
 
 const route = useRoute();
 const router = useRouter();

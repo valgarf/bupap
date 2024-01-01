@@ -1,5 +1,8 @@
 <template>
-  <q-page class="column q-px-md q-pt-lg items-center justify-start">
+  <q-page
+    class="column q-px-md q-pt-lg items-center justify-start"
+    :style-fn="qPageStyleFnForTabs"
+  >
     <q-timeline layout="comfortable">
       <q-timeline-entry
         v-for="entry in timeline"
@@ -20,6 +23,7 @@ import { useRoute } from 'vue-router';
 import QueryStatus from 'src/components/QueryStatus.vue';
 import { computed } from 'vue';
 import { DateTime } from 'luxon';
+import { qPageStyleFnForTabs } from 'src/common/helper';
 
 const route = useRoute();
 const { result, loading, error } = useQuery(

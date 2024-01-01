@@ -9,7 +9,7 @@
       flat
       no-caps
       @click="open_link(card)"
-      class="q-ma-none q-px-sm q-py-none"
+      class="q-ma-none q-px-sm q-py-none q-mb-md"
     >
       <div
         class="row items-center no-wrap text-subtitle2 text-weight-bold select-none"
@@ -21,12 +21,12 @@
       </div>
     </q-btn>
     <div
-      v-if="this.progress != null"
+      v-if="progress != null && progress[2] > 0"
       class="row items-center full-width q-gutter-xs q-pl-sm"
     >
-      <span class="dot" :class="{ invisible: !this.active }" style=""></span>
+      <span class="dot" :class="{ invisible: !active }" style=""></span>
       <svg
-        v-if="this.progress != null"
+        v-if="progress != null"
         ref="progressSvg"
         version="1.1"
         width="50%"
@@ -63,17 +63,14 @@
         />
         <!-- <rect :x="progress[1]-1" y="0" :width="2" height="10" style="fill:yellow;stroke-width:0;"/> -->
       </svg>
-      <div>
-        ~{{ this.progress[1] }}% ({{ this.progress[0] }}% -
-        {{ this.progress[2] }}%)
-      </div>
+      <div>~{{ progress[1] }}% ({{ progress[0] }}% - {{ progress[2] }}%)</div>
     </div>
-    <div v-if="this.finished_at != null">
-      {{ this.finished_at }}
+    <div v-if="finished_at != null">
+      {{ finished_at }}
     </div>
-    <div v-if="!this.detached" class="row">
+    <div v-if="!detached" class="row">
       <q-badge
-        v-for="tag in this.tags"
+        v-for="tag in tags"
         :key="card.id + tag.text + tag.color"
         :color="tag.color"
         :text-color="textColorFromBackground(tag.color)"
@@ -172,7 +169,7 @@ function classes() {
       'q-mt-xs',
     ];
   } else {
-    var result = ['hoverable', 'cursor-pointer'];
+    var result = ['hoverable', 'cursor-pointer', 'q-pa-md'];
   }
   return result;
 }

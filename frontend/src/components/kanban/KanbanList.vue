@@ -6,14 +6,14 @@
       :key="node_key(node)"
       @dragstart="(evt) => dragstart(node, evt)"
     >
-      <template v-if="node.card.detached && this.depth == 0">
+      <template v-if="node.card.detached && depth == 0">
         <KanbanCard
           class="q-mt-none"
           :class="card_classes(node.parent)"
           :card="node.parent.card"
           :detached="true"
           :dragged="false"
-          :priorities="this.priorities"
+          :priorities="priorities"
           @open_link="open_link"
         />
         <div class="row items-stretch">
@@ -24,7 +24,7 @@
             :nodes="[node]"
             :depth="depth + 1"
             :detached_parent="true"
-            :priorities="this.priorities"
+            :priorities="priorities"
             @toggle_expand="toggle_expand"
             @dragging_ref="dragging_ref"
             @dragstart_card="dragstart_card"
@@ -39,14 +39,14 @@
           :card="node.card"
           :detached="node_is_detached(node)"
           :dragged="node_is_drag_target(node)"
-          :priorities="this.priorities"
+          :priorities="priorities"
           @dragging_ref="dragging_ref"
           @open_link="open_link"
         />
         <div
           v-if="
             node.children.length > 0 &&
-            !(node.card.detached && this.depth > 0 && !this.detached_parent)
+            !(node.card.detached && depth > 0 && !detached_parent)
           "
           class="row items-stretch"
         >
@@ -62,7 +62,7 @@
             :nodes="node.children"
             :depth="depth + 1"
             :detached_parent="false"
-            :priorities="this.priorities"
+            :priorities="priorities"
             @toggle_expand="toggle_expand"
             @dragging_ref="dragging_ref"
             @dragstart_card="dragstart_card"
@@ -124,20 +124,20 @@ function node_is_drag_target(node) {
 //     console.log(val);
 // },
 function column_classes() {
-  var result = ['nicegui-column', 'p-0', 'm-0', 'items-stretch'];
+  var result = ['column', 'q-pa-none', 'q-ma-none', 'items-stretch'];
   if (props.depth == 0) {
-    result.push('gap-2');
+    result.push('q-gutter-md');
   } else {
-    result.push('mt-2');
-    result.push('gap-1');
+    result.push('q-mt-md');
+    result.push('q-gutter-sm');
   }
   return result;
 }
 function toggle_btn_classes(node) {
   if (node.expanded) {
-    return ['w-10', 'mt-2', 'mr-1'];
+    return ['w-10', 'q-mt-sm', 'q-mr-xs'];
   } else {
-    return 'ml-10 h-5 grow mt-2';
+    return 'q-ml-xl col-grow q-mt-sm';
   }
 }
 function card_div_classes(node) {

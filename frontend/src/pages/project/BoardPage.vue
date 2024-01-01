@@ -1,5 +1,5 @@
 <template>
-  <q-page class="column q-px-md q-pt-lg">
+  <q-page class="q-px-md q-pt-lg" :style-fn="qPageStyleFnForTabsFixed">
     <!-- <div v-if="result" class="self-center text-h4 text-weight-bold">
       {{ result?.project?.name }}
     </div> -->
@@ -16,6 +16,7 @@ import QueryStatus from 'src/components/QueryStatus.vue';
 import { DateTime } from 'luxon';
 import { computed } from 'vue';
 import KanbanBoard from 'src/components/kanban/KanbanBoard.vue';
+import { qPageStyleFnForTabsFixed } from 'src/common/helper';
 
 const route = useRoute();
 const { result, loading, error } = useQuery(
@@ -90,7 +91,7 @@ const kanbanData = computed(() => {
 
   function addLane(state: str) {
     const lane = {
-      name: state,
+      title: state,
       id: state,
       priority_sorted: false,
       finished_sorted: false,

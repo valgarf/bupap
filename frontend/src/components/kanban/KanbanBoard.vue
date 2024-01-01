@@ -1,40 +1,49 @@
 <template>
-  <div
-    class="row q-pa-md overflow-x-auto col-grow flex-nowrap items-stretch"
-    @drop="drop"
-    @dragover.prevent="(evt) => {}"
-  >
-    <q-card
-      v-for="lane in kanban.lane_order"
-      :key="lane.id"
-      class="items-stretch lane-card"
-      @dragover.prevent="(evt) => dragover(lane, evt)"
+  <q-scroll-area ref="scrollArea" class="fit col-grow">
+    <div
+      class="row q-pa-md no-wrap items-stretch q-gutter-md"
+      :style="scrollContentStyle"
+      @drop="drop"
+      @dragover.prevent="(evt) => {}"
     >
-      <div class="text-weight-bold text-h5 q-mt-md">{{ lane.title }}</div>
-      <q-scroll-area class="q-ma-none q-pa-none q-pr-sm col-grow">
-        <div class="p-2">
-          <KanbanList
-            :parent_id="null"
-            :nodes="lane.top_level_nodes"
-            :depth="0"
-            :detached_parent="false"
-            :ref="lane.id"
-            :priorities="kanban.priorities"
-            @toggle_expand="toggle_expand"
-            @dragging_ref="dragging_ref"
-            @dragstart_card="dragstart_card"
-            @open_link="open_link"
-          />
+      <q-card
+        v-for="lane in kanban.lane_order"
+        :key="lane.id"
+        class="items-stretch lane-card column"
+        @dragover.prevent="(evt) => dragover(lane, evt)"
+      >
+        <div class="text-weight-bold text-h6 q-mt-md q-ml-md">
+          {{ lane.title }}
         </div>
-      </q-scroll-area>
-    </q-card>
-  </div>
+        <q-scroll-area
+          class="q-ma-none q-pa-none q-pr-sm col-grow"
+          :visible="true"
+        >
+          <div class="q-pa-md">
+            <KanbanList
+              :parent_id="null"
+              :nodes="lane.top_level_nodes"
+              :depth="0"
+              :detached_parent="false"
+              :ref="lane.id"
+              :priorities="kanban.priorities"
+              @toggle_expand="toggle_expand"
+              @dragging_ref="dragging_ref"
+              @dragstart_card="dragstart_card"
+              @open_link="open_link"
+            />
+          </div>
+        </q-scroll-area>
+      </q-card>
+    </div>
+  </q-scroll-area>
 </template>
 
 
 <style scoped>
 .lane-card {
   pointer-events: none;
+  min-width: 500px;
 }
 </style>
 
@@ -44,7 +53,7 @@
 
 <script setup lang='ts'>
 import KanbanList from './KanbanList.vue';
-import { computed, defineProps, defineEmits, ref } from 'vue';
+import { computed, defineProps, defineEmits, ref, watchEffect } from 'vue';
 
 const props = defineProps(['initial_data']);
 const emit = defineEmits(['moved_cards', 'open_link']);
@@ -58,6 +67,14 @@ const dragged = ref({
   ref: null,
   blocked: false,
   nodes: [],
+});
+
+const scrollArea = ref(null);
+const scrollContentStyle = computed(() => {
+  if (scrollArea.value == null) {
+    return {};
+  }
+  return { height: `${scrollArea.value.$el.clientHeight}px !important` };
 });
 
 function open_link(val) {
@@ -168,6 +185,10 @@ function compute_kanban(initial_data) {
 
   return { nodes, lanes, lane_order, priorities: initial_data.priorities };
 }
+
+watchEffect(() => {
+  console.log(kanban);
+});
 function toggle_expand(node) {
   // TODO: cannot change computed value!
   var n = nodes.value[node.id];

@@ -88,3 +88,19 @@ export function lastNonNull(reference) {
 export function textColorFromBackground(col) {
     return colors.luminosity(col) <= 0.4 ? 'white' : 'black'
 }
+
+export function qPageHeightForTabs(offset) {
+    offset += 48 // height of tabs
+    return offset ? `calc(100vh - ${offset}px)` : '100vh'
+}
+    
+export function qPageStyleFnForTabs(offset) {
+    return { minHeight: qPageHeightForTabs(offset) }
+}
+
+export function qPageStyleFnForTabsFixed(offset) {
+    return {
+        minHeight: qPageHeightForTabs(offset),
+        height: qPageHeightForTabs(offset) + ' !important'
+    }
+}
