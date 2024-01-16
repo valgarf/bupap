@@ -1,10 +1,13 @@
 <template>
-  <q-page class="q-px-md q-pt-lg" :style-fn="qPageStyleFnForTabsFixed">
+  <q-page class="q-px-md q-pt-lg column" :style-fn="qPageStyleFnForTabsFixed">
     <!-- <div v-if="result" class="self-center text-h4 text-weight-bold">
       {{ result?.project?.name }}
     </div> -->
     <KanbanBoard v-if="kanbanData != null" :initial_data="kanbanData" />
-    <query-status :loading="loading" :error="error" />
+    <query-status
+      :loading="loading || (kanbanData == null && error == null)"
+      :error="error"
+    />
   </q-page>
 </template>
 
@@ -49,6 +52,7 @@ const { result, loading, error } = useQuery(
             priority
           }
           priorities {
+            key
             text
             color
           }

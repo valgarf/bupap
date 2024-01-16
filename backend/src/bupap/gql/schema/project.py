@@ -41,6 +41,7 @@ class Project(DBType, strawberry.relay.Node):
         for prio in db.TaskPriority:
             result.append(
                 Tag(
+                    key=prio.name,
                     text=prio.text,
                     color=prio.default_color,
                 )

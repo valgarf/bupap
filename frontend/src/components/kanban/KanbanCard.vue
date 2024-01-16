@@ -140,7 +140,7 @@ const tags = computed(() => {
   var tags = [...props.card.tags];
   if (props.priorities != null) {
     for (var p of props.priorities) {
-      if (props.card.priority == p.text) {
+      if (props.card.priority == p.key) {
         tags.splice(0, 0, p);
       }
     }

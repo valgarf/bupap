@@ -42,7 +42,6 @@
 
 <style scoped>
 .lane-card {
-  pointer-events: none;
   min-width: 500px;
 }
 </style>
@@ -70,11 +69,23 @@ const dragged = ref({
 });
 
 const scrollArea = ref(null);
+
+const scrollHeight = ref(0);
+function onResize() {
+  scrollHeight.value = scrollArea.value.$el.clientHeight;
+}
+const ro = new ResizeObserver(onResize);
+watchEffect(() => {
+  if (scrollArea.value != null) {
+    ro.observe(scrollArea.value.$el);
+  }
+});
+
 const scrollContentStyle = computed(() => {
-  if (scrollArea.value == null) {
+  if (scrollHeight.value == 0) {
     return {};
   }
-  return { height: `${scrollArea.value.$el.clientHeight}px !important` };
+  return { height: `${scrollHeight.value}px !important` };
 });
 
 function open_link(val) {
