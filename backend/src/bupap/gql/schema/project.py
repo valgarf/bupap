@@ -9,6 +9,17 @@ from .tag import Tag
 from .task import Task
 
 
+def _task_sort_key(db_task: db.Task):
+    result = [
+        db_task.task_state.name,
+    ]
+    if db_task.task_state in [db.TaskState.DONE, db.TaskState.DONE]:
+        result.append(db_task.finished_at)
+    else:
+        result.append(-db_task.order_id or 0)
+    return tuple(result)
+
+
 @strawberry.type
 class Project(DBType, strawberry.relay.Node):
     _db_table = db.Project
@@ -16,6 +27,10 @@ class Project(DBType, strawberry.relay.Node):
     name: str = map_to_db()
     parent: Self | None = map_to_db()
     tasks: list[Task] = map_to_db()
+
+    @strawberry.field(extensions=[DBConvExtension()])
+    def tasks(self) -> list[Task]:
+        return sorted(self.db_obj.tasks, key=_task_sort_key, reverse=True)
 
     @strawberry.field()
     def children(self, recursive: bool = False) -> list[Self]:
