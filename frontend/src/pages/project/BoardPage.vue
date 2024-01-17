@@ -132,7 +132,7 @@ const kanbanData = computed(() => {
       active: task.progress.active,
       priority: task.priority,
       link: true,
-      finished_at: task.finished_at,
+      finished_at: DateTime.fromISO(task.finishedAt).toISODate(),
       children_order: [],
     };
     lane.card_order.push(card.id);

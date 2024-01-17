@@ -12,7 +12,7 @@
       class="q-ma-none q-px-sm q-py-none q-mb-md"
     >
       <div
-        class="row items-center no-wrap text-subtitle2 text-weight-bold select-none"
+        class="row items-center no-wrap text-subtitle1 text-weight-bold select-none"
       >
         <div class="text-center">
           {{ card.title }}
@@ -65,16 +65,16 @@
       </svg>
       <div>~{{ progress[1] }}% ({{ progress[0] }}% - {{ progress[2] }}%)</div>
     </div>
-    <div v-if="finished_at != null">
-      {{ finished_at }}
+    <div v-if="finished_at != null" class="q-pl-sm">
+      Finished: {{ finished_at }}
     </div>
-    <div v-if="!detached" class="row">
+    <div v-if="!detached" class="row q-pl-sm q-mt-sm">
       <q-badge
         v-for="tag in tags"
         :key="card.id + tag.text + tag.color"
         :color="tag.color"
         :text-color="textColorFromBackground(tag.color)"
-        class="q-pa-xs q-ma-xs select-none"
+        class="q-pa-xs select-none"
         >{{ tag.text }}</q-badge
       >
     </div>
