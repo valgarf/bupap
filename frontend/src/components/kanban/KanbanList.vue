@@ -128,14 +128,14 @@ function column_classes() {
   if (props.depth == 0) {
     result.push('q-gutter-md');
   } else {
-    result.push('q-mt-md');
+    // result.push('q-mt-none');
     result.push('q-gutter-sm');
   }
   return result;
 }
 function toggle_btn_classes(node) {
   if (node.expanded) {
-    return ['w-10', 'q-mt-sm', 'q-mr-xs'];
+    return ['q-mt-sm', 'q-mr-xs'];
   } else {
     return 'q-ml-xl col-grow q-mt-sm';
   }

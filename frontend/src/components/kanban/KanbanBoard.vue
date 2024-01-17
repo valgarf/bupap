@@ -56,7 +56,12 @@ import { computed, defineProps, defineEmits, ref, watchEffect } from 'vue';
 
 const props = defineProps(['initial_data']);
 const emit = defineEmits(['moved_cards', 'open_link']);
-const kanban = computed(() => compute_kanban(props.initial_data));
+const kanban = ref<any>(null);
+
+watchEffect(() => {
+  kanban.value = compute_kanban(props.initial_data);
+});
+
 const nodes = computed(() => kanban.value.nodes);
 const dragged = ref({
   x: 0,
@@ -202,7 +207,7 @@ watchEffect(() => {
 });
 function toggle_expand(node) {
   // TODO: cannot change computed value!
-  var n = nodes.value[node.id];
+  var n = kanban.value.nodes[node.id];
   n.expanded = !n.expanded;
 }
 function acceptable_above(orig_card, target_card, target_lane, target_idx) {
