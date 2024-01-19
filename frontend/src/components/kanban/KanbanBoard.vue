@@ -19,13 +19,19 @@
           class="q-ma-none q-pa-none q-pr-sm col-grow"
           :visible="true"
         >
-          <div class="q-pa-md">
+          <div
+            class="q-pa-md"
+            :ref="
+              (r) => {
+                lane_refs[lane.id] = r;
+              }
+            "
+          >
             <KanbanList
               :parent_id="null"
               :nodes="lane.top_level_nodes"
               :depth="0"
               :detached_parent="false"
-              :ref="lane.id"
               :priorities="kanban.priorities"
               @toggle_expand="toggle_expand"
               @dragging_ref="dragging_ref"
@@ -52,12 +58,20 @@
 
 <script setup lang='ts'>
 import KanbanList from './KanbanList.vue';
-import { computed, defineProps, defineEmits, ref, watchEffect } from 'vue';
+import {
+  computed,
+  defineProps,
+  defineEmits,
+  ref,
+  watchEffect,
+  getCurrentInstance,
+  nextTick,
+} from 'vue';
 
 const props = defineProps(['initial_data']);
 const emit = defineEmits(['moved_cards', 'open_link']);
 const kanban = ref<any>(null);
-
+const lane_refs = {};
 watchEffect(() => {
   kanban.value = compute_kanban(props.initial_data);
 });
@@ -202,9 +216,6 @@ function compute_kanban(initial_data) {
   return { nodes, lanes, lane_order, priorities: initial_data.priorities };
 }
 
-watchEffect(() => {
-  console.log(kanban);
-});
 function toggle_expand(node) {
   // TODO: cannot change computed value!
   var n = kanban.value.nodes[node.id];
@@ -224,7 +235,7 @@ function acceptable_below(orig_card, target_card, target_lane, target_idx) {
 }
 
 function dragover(lane, evt) {
-  if (dragged.value.blocked) {
+  if (dragged.value.blocked || dragged.value.ref == null) {
     return;
   }
   let x = evt.y;
@@ -278,7 +289,7 @@ function change_lane(node, lane, y) {
   } else {
     let index = -1;
     let child_idx = 0;
-    let children = this.$refs[lane.id][0]._.subTree.el.children; // depends on layout!
+    let children = lane_refs[lane.id]?.children[0]?.children; // depends on layout!
     for (const child of children) {
       if (child.getBoundingClientRect().top > y) {
         index = child_idx;
@@ -296,8 +307,8 @@ function change_lane(node, lane, y) {
     node.lane = lane;
 
     dragged.value.blocked = true;
-    $nextTick(() => {
-      $nextTick(() => {
+    nextTick(() => {
+      nextTick(() => {
         move_up(node, y);
       });
     });
@@ -361,8 +372,8 @@ function move_up(node, y) {
   }
 
   dragged.value.blocked = true;
-  $nextTick(() => {
-    $nextTick(() => {
+  nextTick(() => {
+    nextTick(() => {
       move_up(node, y);
     });
   });
@@ -423,8 +434,8 @@ function move_down(node, y) {
   }
 
   dragged.value.blocked = true;
-  $nextTick(() => {
-    $nextTick(() => {
+  nextTick(() => {
+    nextTick(() => {
       move_down(node, y);
     });
   });
@@ -438,7 +449,7 @@ function dragstart_card(node_ids, x, y) {
   // drag image and then hide the original card.
   window.requestAnimationFrame(function () {
     for (let node_id of node_ids) {
-      nodes.value[node_id].dragged = true;
+      kanban.value.nodes[node_id].dragged = true;
     }
   });
 }
@@ -460,7 +471,7 @@ function drop(evt) {
   }
   let node_ids = drag_data['node_ids'];
   evt.stopPropagation();
-  let nodes = node_ids.map((nid) => this.nodes[nid]);
+  let nodes = node_ids.map((nid) => kanban.value.nodes[nid]);
   let lane = nodes[0].lane;
   let ordered_nodes = lane.nodes;
   emit('moved_cards', {

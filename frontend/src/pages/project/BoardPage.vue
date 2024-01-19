@@ -70,8 +70,6 @@ const kanbanData = computed(() => {
     return null;
   }
 
-  console.log(result.value);
-
   let proj = result.value.project;
 
   const data = {
@@ -163,7 +161,6 @@ const kanbanData = computed(() => {
     }
   }
 
-  console.log(data);
   return data;
 });
 </script>

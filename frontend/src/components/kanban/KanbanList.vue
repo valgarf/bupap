@@ -164,7 +164,7 @@ function toggle_btn_text(node) {
   return num + ' ' + (num > 1 ? 'subtasks' : 'subtask');
 }
 function show_card(node) {
-  return !node.dragged || this.node_is_detached(node);
+  return !node.dragged || node_is_detached(node);
   // return (this.dragged.entry == null || this.dragged.entry.id != card.id);
 }
 function toggle_expand(node) {

@@ -104,7 +104,14 @@ export interface Tag {
 </script>
 
 <script setup lang="ts">
-import { computed, defineProps, defineEmits, ref } from 'vue';
+import {
+  computed,
+  defineProps,
+  defineEmits,
+  ref,
+  onMounted,
+  onUpdated,
+} from 'vue';
 import { textColorFromBackground } from 'src/common/helper';
 const props = defineProps({
   card: { type: Object as () => Tag },
@@ -116,12 +123,12 @@ const cardElement = ref(null);
 const progressSvg = ref(null);
 const emit = defineEmits(['dragging_ref', 'open_link']);
 
-function mounted() {
+onMounted(() => {
   check_dragged();
-}
-function updated() {
+});
+onUpdated(() => {
   check_dragged();
-}
+});
 
 const progress = computed(() => {
   if (props.card.progress == null) {
