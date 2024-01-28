@@ -28,7 +28,7 @@ import { qPageStyleFnForTabs } from 'src/common/helper';
 const route = useRoute();
 const { result, loading, error } = useQuery(
   gql`
-    query getUser($dbId: Int!) {
+    query getUserActivity($dbId: Int!) {
       user: dbNode(typename: "User", dbId: $dbId) {
         ... on User {
           activity {

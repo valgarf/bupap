@@ -52,7 +52,14 @@
 }
 </style>
 
-
+<script lang="ts">
+interface KanbanState {
+  nodes: { [key: number]: KanbanNode };
+  lanes: { [key: string]: KanbanLaneNode };
+  laneOrder: KanbanLaneNode[];
+  priorities: Tag[];
+}
+</script>
 <script setup lang='ts'>
 import KanbanList from './KanbanList.vue';
 import {
@@ -61,19 +68,20 @@ import {
   defineEmits,
   ref,
   watchEffect,
-  getCurrentInstance,
   nextTick,
 } from 'vue';
+import {useElementSize} from '@vueuse/core'
+import { KanbanNode, KanbanLaneNode, KanbanProps, KanbanPropsData, Tag } from './interfaces';
 
-const props = defineProps(['initialData']);
+const props = defineProps<KanbanProps>();
 const emit = defineEmits(['movedCards', 'openLink']);
-const kanban = ref<any>(null);
+const kanban = ref<KanbanState | null>(null);
 const laneRefs = {};
 watchEffect(() => {
   kanban.value = computeKanban(props.initialData);
 });
 
-const nodes = computed(() => kanban.value.nodes);
+const nodes = computed(() => kanban.value?.nodes);
 const dragged = ref({
   x: 0,
   y: 0,
@@ -85,126 +93,44 @@ const dragged = ref({
 });
 
 const scrollArea = ref(null);
-
-const scrollHeight = ref(0);
-function onResize() {
-  scrollHeight.value = scrollArea.value.$el.clientHeight;
-}
-const ro = new ResizeObserver(onResize);
-watchEffect(() => {
-  if (scrollArea.value != null) {
-    ro.observe(scrollArea.value.$el);
-  }
-});
-
+const { height: scrollAreaHeight }=useElementSize(scrollArea)
 const scrollContentStyle = computed(() => {
-  if (scrollHeight.value == 0) {
+  if (scrollAreaHeight.value == 0) {
     return {};
   }
-  return { height: `${scrollHeight.value}px !important` };
+  return { height: `${scrollAreaHeight.value}px !important` };
 });
 
 function openLink(val) {
   emit('openLink', val);
 }
 
-function computeKanban(initialData) {
-  let nodes = {};
+function computeKanban(initialData: KanbanPropsData):KanbanState {
+  let nodes: {[key: number]: KanbanNode} = {};
   for (let [k, v] of Object.entries(initialData.cards)) {
     let intk = parseInt(k);
-    nodes[intk] = {
-      parent: null,
-      children: [],
-      id: intk,
-      card: v,
-      expanded: false,
-      dragged: false,
-      _lane: null,
-      get lane() {
-        return this.topLevel ? this._lane : this.parent.lane;
-      },
-      set lane(value) {
-        if (this.detached || this.parent == null) {
-          this._lane = value;
-        } else {
-          if (value.id != this.lane.id) {
-            console.error(
-              'Setter called with unexpected lane.',
-              this,
-              this.lane,
-              value
-            );
-          }
-        }
-      },
-      get topLevel() {
-        return this.detached || this.parent == null;
-      },
-      get detached() {
-        return this.card.detached;
-      },
-      set detached(value) {
-        this.card.detached = value;
-      },
-      recursiveChildren(attachedOnly) {
-        let result = [];
-        for (let c of this.children) {
-          if (!attachedOnly || !c.detached) {
-            result.push(c, ...c.recursiveChildren(attachedOnly));
-          }
-        }
-        return result;
-      },
-      get recursiveParents() {
-        let result = [];
-        let p = this.parent;
-        while (p != null) {
-          result.push(p);
-          if (p.detached) {
-            break;
-          }
-          p = p.parent;
-        }
-        return result;
-      },
-      get recursiveParentIds() {
-        return this.recursiveParents.map((p) => p.id);
-      },
-    };
+    nodes[intk] = new KanbanNode(intk, v);
   }
 
   for (let n of Object.values(nodes)) {
     n.children = n.card.childrenOrder.map((cid) => nodes[cid]);
-    let p = nodes[n.card.parentId];
-    if (p != undefined) {
-      n.parent = p;
+    if (n.card.parentId != null) {
+      let p = nodes[n.card.parentId];
+      if (p != undefined) {
+        n.parent = p;
+      }
     }
   }
 
-  let lanes = {};
+  let lanes: { [key: string]: KanbanLaneNode } = {};
+  
   for (let [k, v] of Object.entries(initialData.lanes)) {
     let allNodes = v.cardOrder.map((cid) => nodes[cid]);
 
-    let lane = {
-      id: v.id,
-      title: v.title,
-      finishedSorted: v.finishedSorted,
-      prioritySorted: v.prioritySorted,
-      topLevelNodes: [],
-      get nodes() {
-        let result = [];
-        for (let n of this.topLevelNodes) {
-          result.push(n, ...n.recursiveChildren(true));
-        }
-        return result;
-      },
-      topLevelNodes: allNodes.filter((n) => {
-        return n.detached || n.parent == null;
-      }),
-    };
+    let lane = new KanbanLaneNode(v, allNodes);
     lanes[k] = lane;
     for (let node of lane.topLevelNodes) {
-      node._lane = lane;
+      node.lane = lane;
     }
   }
 
@@ -213,13 +139,15 @@ function computeKanban(initialData) {
   return { nodes, lanes, laneOrder, priorities: initialData.priorities };
 }
 
-function toggleExpand(node) {
+function toggleExpand(node: KanbanNode) {
   // TODO: cannot change computed value!
-  var n = kanban.value.nodes[node.id];
-  n.expanded = !n.expanded;
+  var n = kanban.value?.nodes[node.id];
+  if (n != null) {
+    n.expanded = !n.expanded;
+  }
 }
 
-function dragover(lane, evt) {
+function dragover(lane: KanbanLaneNode, evt) {
   if (dragged.value.blocked || dragged.value.ref == null) {
     return;
   }

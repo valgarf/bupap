@@ -149,7 +149,7 @@ import {
   formatDatetimeMinutes,
   histogram,
 } from 'src/common/helper';
-import { computed, ref, watchEffect } from 'vue';
+import { computed, ref } from 'vue';
 import { getCssVar } from 'quasar';
 import Apexchart from 'vue3-apexcharts';
 import ProfileEditDialog from './ProfileEditDialog.vue';

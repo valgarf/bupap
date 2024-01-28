@@ -67,7 +67,7 @@ import { useQuery } from '@vue/apollo-composable';
 import { gql } from '@apollo/client/core';
 import { useRoute, useRouter } from 'vue-router';
 import QueryStatus from 'src/components/QueryStatus.vue';
-import { computed, ref, watchEffect } from 'vue';
+import { computed, ref } from 'vue';
 import { listToTree } from 'src/common/tree';
 import { qPageStyleFnForTabs } from 'src/common/helper';
 

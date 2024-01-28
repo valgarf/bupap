@@ -13,19 +13,21 @@
 
 <script setup lang='ts'>
 import { useQuery } from '@vue/apollo-composable';
-import { gql } from '@apollo/client/core';
 import { useRoute } from 'vue-router';
 import QueryStatus from 'src/components/QueryStatus.vue';
-import { DateTime } from 'luxon';
+import { DateTime } from 'luxon'; 
 import { computed } from 'vue';
 import KanbanBoard from 'src/components/kanban/KanbanBoard.vue';
 import { qPageStyleFnForTabsFixed } from 'src/common/helper';
+import { KanbanPropsData, Card } from 'src/components/kanban/interfaces'
+import { graphql } from 'src/gql'
 
 const route = useRoute();
 const { result, loading, error } = useQuery(
-  gql`
-    query getProject($dbId: Int!) {
+  graphql(`
+    query getProjectBoard($dbId: Int!) {
       project: dbNode(typename: "Project", dbId: $dbId) {
+        __typename
         ... on Project {
           name
           tasks {
@@ -59,7 +61,7 @@ const { result, loading, error } = useQuery(
         }
       }
     }
-  `,
+  `),
   {
     dbId: parseInt(route.params.id as string),
   }
@@ -70,9 +72,13 @@ const kanbanData = computed(() => {
     return null;
   }
 
+  if (result.value.project.__typename != 'Project') {
+    return null; // throw? should never happen
+  }
+
   let proj = result.value.project;
 
-  const data = {
+  const data: KanbanPropsData = {
     priorities: [],
     lanes: {},
     laneOrder: [
@@ -88,10 +94,10 @@ const kanbanData = computed(() => {
   };
 
   data.priorities = proj.priorities.map((prio) => {
-    return { ...prio };
+    return { key: prio.key ?? undefined, text: prio.text, color: prio.color };
   });
 
-  function addLane(state: str) {
+  function addLane(state: string) {
     const lane = {
       title: state,
       id: state,
@@ -114,7 +120,7 @@ const kanbanData = computed(() => {
 
   for (let task of proj.tasks) {
     let lane = data.lanes[task.state];
-    const card = {
+    const card: Card = {
       title: task.name,
       id: task.dbId,
       laneId: lane.id,
@@ -141,14 +147,14 @@ const kanbanData = computed(() => {
     if (card.parentId != null) {
       if (data.cards[card.parentId] == null) {
         console.warn(`Unknown card id ${card.parentId}`);
-        data.cards[card.id] = undefined;
+        delete data.cards[card.id];
       } else {
         data.cards[card.parentId].childrenOrder.push(card.id);
       }
     }
   }
 
-  function setDepthRec(card, value = 0) {
+  function setDepthRec(card: Card, value = 0) {
     card.depth = value;
     for (let childId of card.childrenOrder) {
       setDepthRec(data.cards[childId], value + 1);

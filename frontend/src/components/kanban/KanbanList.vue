@@ -77,10 +77,11 @@
 // export interface KanbanListData {
 
 // }
+
 </script>
 
 <script setup lang='ts'>
-import { computed, defineProps, defineEmits, ref } from 'vue';
+import { defineProps, defineEmits } from 'vue';
 import KanbanCard from './KanbanCard.vue';
 
 const props = defineProps([

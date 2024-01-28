@@ -17,7 +17,7 @@ import { qPageStyleFnForTabs } from 'src/common/helper';
 const route = useRoute();
 const { result, loading, error } = useQuery(
   gql`
-    query getTeam($dbId: Int!) {
+    query getTeamNames($dbId: Int!) {
       dbNode(typename: "Team", dbId: $dbId) {
         ... on Team {
           name

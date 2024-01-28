@@ -94,41 +94,6 @@
 }
 </style>
 
-<script lang='ts'>
-export interface Tag {
-  key: string;
-  text: string;
-  color: string;
-}
-
-export interface Progress {
-    0: number;
-    1: number;
-    2: number;
-}
-
-
-export interface Card {
-  id: string;
-  title: string;
-  progress: Progress | null;
-  active: boolean;
-  finishedAt: string | null;
-  tags: Tag[];
-  priority: string;
-  // Other possible properties of Card go here.
-}
-
-export interface CardProps {
-  card: Card;
-  detached: boolean;
-  dragged: boolean;
-  priorities: Tag[];
-}
-
-// export interface KanbanCardData {}
-</script>
-
 <script setup lang="ts">
 import {
   computed,
@@ -139,6 +104,8 @@ import {
   onUpdated,
 } from 'vue';
 import { textColorFromBackground } from 'src/common/helper';
+import { CardProps } from './interfaces';
+
 const props = withDefaults(defineProps<CardProps>(), { priorities: () => [], dragged: false, detached: false })
 
 const cardElement = ref(null);

@@ -123,19 +123,8 @@
             stroke-linecap="round"
           />
         </g>
-        <g v-if="dragged.entry != null">
-          <rect
-            x="0"
-            :y="calc_row_top(dragged_row)"
-            width="100%"
-            :height="geom.row_height"
-            :fill="colors.highlight"
-            style="opacity: 0.5"
-          />
-        </g>
         <g v-for="row in data.rows" :key="row.key">
           <g v-for="bar in row.bars" :key="bar.key">
-            <!-- style="cursor: grab" @mousedown.left="drag(bar)" -->
             <rect
               :x="calc_bar_start(bar)"
               :y="calc_bar_top(row.idx)"
@@ -205,29 +194,6 @@
             stroke="black"
           />
         </g>
-        <g
-          v-if="dragged.entry != null"
-          @mouseup.left="drop"
-          style="cursor: grabbing; opacity: 0.5"
-        >
-          <rect
-            :x="dragged_x"
-            :y="dragged_y"
-            :rx="geom.bar_round"
-            :width="calc_bar_length(dragged.entry)"
-            :height="calc_bar_height()"
-            :fill="dragged.entry.color"
-          />
-          <text
-            :x="dragged_x + (geom.bar_round * 2) / 3"
-            :y="dragged_y + geom.row_height / 2"
-            class="text-body2"
-            :fill="dragged.entry.text_color"
-            text-anchor="left"
-          >
-            {{ dragged.entry.text }}
-          </text>
-        </g>
       </svg>
     </q-scroll-area>
     <!-- </div> -->
@@ -289,7 +255,7 @@ export interface GanttData {
 </script>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { ref } from 'vue';
 
 const gantt = ref(null);
 // const qscroll11 = ref(null);
@@ -297,75 +263,7 @@ const qscroll12 = ref(null);
 const qscroll21 = ref(null);
 const qscroll22 = ref(null);
 
-// const start = new Date();
-// const _rows = [
-//   {
-//     idx: 0,
-//     name: 'sr',
-//     key: 'sr',
-//     bg: [],
-//     fg: [],
-//     bars: [
-//       {
-//         idx: 0,
-//         key: 'sr1',
-//         start: start,
-//         end: new Date(start.getTime() + 1000 * 2 * 3600),
-//         color: '#2de1c2',
-//       },
-//     ],
-//   },
-//   {
-//     idx: 1,
-//     name: 'te',
-//     key: 'te',
-//     bg: [],
-//     fg: [],
-//     bars: [
-//       {
-//         idx: 0,
-//         key: 'te1',
-//         start: new Date(start.getTime() + 1000 * 0.5 * 3600),
-//         end: new Date(start.getTime() + 1000 * 1.5 * 3600),
-//         color: '#63474d',
-//       },
-//       {
-//         idx: 1,
-//         key: 'te2',
-//         start: new Date(start.getTime() + 1000 * 1.8 * 3600),
-//         end: new Date(start.getTime() + 1000 * 2.0 * 3600),
-//         color: '#d4b2d8',
-//       },
-//     ],
-//   },
-//   {
-//     idx: 2,
-//     name: 'jbw',
-//     key: 'jbw',
-//     bg: [],
-//     fg: [],
-//     bars: [
-//       {
-//         idx: 0,
-//         key: 'jbw1',
-//         start: new Date(start.getTime() - 1000 * 1 * 3600),
-//         end: new Date(start.getTime() + 1000 * 2 * 3600),
-//         color: '#63474d',
-//       },
-//     ],
-//   },
-// ];
-
-// const data: GanttData = {
-//   title: 'Test',
-//   rows: _rows,
-//   now: start,
-//   start: new Date(start.getTime() - 1000 * 3600 * 2),
-//   end: new Date(start.getTime() + 1000 * 3600 * 22),
-// };
-
 const props = defineProps(['data']);
-const dragged = { x: 0, y: 0, entry: null };
 const geom = {
   pad_top: 32,
   pad_bottom: 12,
@@ -381,26 +279,6 @@ const colors = {
 };
 var _ignore_scroll = [];
 
-const dragged_x = computed(() => {
-  if (dragged.entry == null) {
-    return 0;
-  }
-  return dragged.x - calc_bar_length(dragged.entry) / 2;
-});
-const dragged_y = computed(() => {
-  if (dragged.entry == null) {
-    return 0;
-  }
-  return dragged.y - 20;
-});
-
-const dragged_row = computed(() => {
-  return Math.floor((dragged.y - geom.bar_inset) / geom.row_height);
-});
-function handle_click() {
-  value += 1;
-  $emit('change', value);
-}
 function get_hour_marks() {
   var marks = [];
   var c = new Date(props.data.start);
@@ -462,16 +340,6 @@ function calc_image_height() {
 function calc_bar_height() {
   return geom.row_height - 2 * geom.bar_inset;
 }
-function drag(entry: GanttBar) {
-  dragged.entry = entry;
-}
-function drop() {
-  dragged.entry = null;
-}
-function move(event) {
-  dragged.x = event.offsetX;
-  dragged.y = event.offsetY;
-}
 function open_item(key) {
   $emit('open_item', key);
 }
@@ -529,7 +397,4 @@ function onscroll(evt) {
   }
 }
 
-onMounted(() => {
-  gantt.value.addEventListener('mousemove', move);
-});
 </script>

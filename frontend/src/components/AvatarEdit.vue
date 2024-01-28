@@ -194,8 +194,8 @@ const shirtText = computed({
 });
 const {
   result: resultRenderedDirect,
-  loading: loadingRendered,
-  error: errorRendered,
+  // loading: loadingRendered,
+  // error: errorRendered,
 } = useQuery(
   gql`
     query renderedAvatar($avatar: AvatarInput!) {
@@ -294,8 +294,8 @@ const {
   onResult: onResultRandom,
   load: loadRandom,
   refetch: refetchRandom,
-  loading: loadingRandom,
-  error: errorRandom,
+  // loading: loadingRandom,
+  // error: errorRandom,
 } = useLazyQuery(
   gql`
     query randomAvatar {
