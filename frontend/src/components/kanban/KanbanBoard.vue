@@ -7,7 +7,7 @@
       @dragover.prevent="(evt) => {}"
     >
       <q-card
-        v-for="lane in kanban.lane_order"
+        v-for="lane in kanban.laneOrder"
         :key="lane.id"
         class="items-stretch lane-card column"
         @dragover.prevent="(evt) => dragover(lane, evt)"
@@ -23,20 +23,20 @@
             class="q-pa-md"
             :ref="
               (r) => {
-                lane_refs[lane.id] = r;
+                laneRefs[lane.id] = r;
               }
             "
           >
             <KanbanList
-              :parent_id="null"
-              :nodes="lane.top_level_nodes"
+              :parent-id="null"
+              :nodes="lane.topLevelNodes"
               :depth="0"
-              :detached_parent="false"
+              :detached-parent="false"
               :priorities="kanban.priorities"
-              @toggle_expand="toggle_expand"
-              @dragging_ref="dragging_ref"
-              @dragstart_card="dragstart_card"
-              @open_link="open_link"
+              @toggle-expand="toggleExpand"
+              @dragging-ref="draggingRef"
+              @dragstart-card="dragstartCard"
+              @open-link="openLink"
             />
           </div>
         </q-scroll-area>
@@ -52,9 +52,6 @@
 }
 </style>
 
- <!-- <div v-for="card in flat_cards(lane)" :class="card_div_classes(card)" :key="card.id" @dragenter="(evt) => dragenter(card, evt)" @dragover="(evt) => dragover(card, evt)" @dragstart="(evt) => dragstart(card, evt)" @dragend="(evt) => dragend(card, evt)">
-                        <nicegui-kanban_card draggable="true" :class="card_classes(card)" :card="card"/>
-                    </div> -->
 
 <script setup lang='ts'>
 import KanbanList from './KanbanList.vue';
@@ -68,12 +65,12 @@ import {
   nextTick,
 } from 'vue';
 
-const props = defineProps(['initial_data']);
-const emit = defineEmits(['moved_cards', 'open_link']);
+const props = defineProps(['initialData']);
+const emit = defineEmits(['movedCards', 'openLink']);
 const kanban = ref<any>(null);
-const lane_refs = {};
+const laneRefs = {};
 watchEffect(() => {
-  kanban.value = compute_kanban(props.initial_data);
+  kanban.value = computeKanban(props.initialData);
 });
 
 const nodes = computed(() => kanban.value.nodes);
@@ -107,13 +104,13 @@ const scrollContentStyle = computed(() => {
   return { height: `${scrollHeight.value}px !important` };
 });
 
-function open_link(val) {
-  emit('open_link', val);
+function openLink(val) {
+  emit('openLink', val);
 }
 
-function compute_kanban(initial_data) {
+function computeKanban(initialData) {
   let nodes = {};
-  for (let [k, v] of Object.entries(initial_data.cards)) {
+  for (let [k, v] of Object.entries(initialData.cards)) {
     let intk = parseInt(k);
     nodes[intk] = {
       parent: null,
@@ -124,7 +121,7 @@ function compute_kanban(initial_data) {
       dragged: false,
       _lane: null,
       get lane() {
-        return this.top_level ? this._lane : this.parent.lane;
+        return this.topLevel ? this._lane : this.parent.lane;
       },
       set lane(value) {
         if (this.detached || this.parent == null) {
@@ -140,7 +137,7 @@ function compute_kanban(initial_data) {
           }
         }
       },
-      get top_level() {
+      get topLevel() {
         return this.detached || this.parent == null;
       },
       get detached() {
@@ -149,16 +146,16 @@ function compute_kanban(initial_data) {
       set detached(value) {
         this.card.detached = value;
       },
-      recursive_children(attached_only) {
+      recursiveChildren(attachedOnly) {
         let result = [];
         for (let c of this.children) {
-          if (!attached_only || !c.detached) {
-            result.push(c, ...c.recursive_children(attached_only));
+          if (!attachedOnly || !c.detached) {
+            result.push(c, ...c.recursiveChildren(attachedOnly));
           }
         }
         return result;
       },
-      get recursive_parents() {
+      get recursiveParents() {
         let result = [];
         let p = this.parent;
         while (p != null) {
@@ -170,68 +167,56 @@ function compute_kanban(initial_data) {
         }
         return result;
       },
-      get recursive_parent_ids() {
-        return this.recursive_parents.map((p) => p.id);
+      get recursiveParentIds() {
+        return this.recursiveParents.map((p) => p.id);
       },
     };
   }
 
   for (let n of Object.values(nodes)) {
-    n.children = n.card.children_order.map((cid) => nodes[cid]);
-    let p = nodes[n.card.parent_id];
+    n.children = n.card.childrenOrder.map((cid) => nodes[cid]);
+    let p = nodes[n.card.parentId];
     if (p != undefined) {
       n.parent = p;
     }
   }
 
   let lanes = {};
-  for (let [k, v] of Object.entries(initial_data.lanes)) {
-    let all_nodes = v.card_order.map((cid) => nodes[cid]);
+  for (let [k, v] of Object.entries(initialData.lanes)) {
+    let allNodes = v.cardOrder.map((cid) => nodes[cid]);
 
     let lane = {
       id: v.id,
       title: v.title,
-      finished_sorted: v.finished_sorted,
-      priority_sorted: v.priority_sorted,
-      top_level_nodes: [],
+      finishedSorted: v.finishedSorted,
+      prioritySorted: v.prioritySorted,
+      topLevelNodes: [],
       get nodes() {
         let result = [];
-        for (let n of this.top_level_nodes) {
-          result.push(n, ...n.recursive_children(true));
+        for (let n of this.topLevelNodes) {
+          result.push(n, ...n.recursiveChildren(true));
         }
         return result;
       },
-      top_level_nodes: all_nodes.filter((n) => {
+      topLevelNodes: allNodes.filter((n) => {
         return n.detached || n.parent == null;
       }),
     };
     lanes[k] = lane;
-    for (let node of lane.top_level_nodes) {
+    for (let node of lane.topLevelNodes) {
       node._lane = lane;
     }
   }
 
-  let lane_order = initial_data.lane_order.map((lid) => lanes[lid]);
+  let laneOrder = initialData.laneOrder.map((lid) => lanes[lid]);
 
-  return { nodes, lanes, lane_order, priorities: initial_data.priorities };
+  return { nodes, lanes, laneOrder, priorities: initialData.priorities };
 }
 
-function toggle_expand(node) {
+function toggleExpand(node) {
   // TODO: cannot change computed value!
   var n = kanban.value.nodes[node.id];
   n.expanded = !n.expanded;
-}
-function acceptable_above(orig_card, target_card, target_lane, target_idx) {
-  return true;
-  // return (target_card.parent_id == null || orig_card.parent_id == target_card.parent_id)
-}
-function acceptable_below(orig_card, target_card, target_lane, target_idx) {
-  return true;
-  // if (target_lane.card_order.length <= target_idx + 1) {
-  //     return true
-  // }
-  // target_card = this.kanban.cards[target_lane.card_order[target_idx+1]]
-  // return this.acceptable_above(orig_card, target_card, target_lane, target_idx+1)
 }
 
 function dragover(lane, evt) {
@@ -251,56 +236,56 @@ function dragover(lane, evt) {
     return;
   }
   if (dragged.value.nodes.every((node) => node.lane.id == lane.id)) {
-    if (lane.finished_sorted) {
+    if (lane.finishedSorted) {
       return;
     }
     for (let node of dragged.value.nodes) {
       if (up) {
-        move_up(node, y);
+        moveUp(node, y);
       }
       if (down) {
-        move_down(node, y);
+        moveDown(node, y);
       }
     }
   } else {
     for (let node of dragged.value.nodes) {
-      change_lane(node, lane, y);
+      changeLane(node, lane, y);
     }
   }
 }
-function change_lane(node, lane, y) {
+function changeLane(node, lane, y) {
   // TODO cannot simply modify a computed variable
   if (node.lane.id == lane.id) {
     return;
   }
-  if (node.top_level) {
-    let index = node.lane.top_level_nodes.indexOf(node);
-    node.lane.top_level_nodes.splice(index, 1);
+  if (node.topLevel) {
+    let index = node.lane.topLevelNodes.indexOf(node);
+    node.lane.topLevelNodes.splice(index, 1);
   }
   // try to find correct index
-  if (lane.finished_sorted) {
+  if (lane.finishedSorted) {
     if (node.parent?.lane.id == lane.id) {
       node.detached = false;
     } else {
-      lane.top_level_nodes.splice(0, 0, node);
+      lane.topLevelNodes.splice(0, 0, node);
       node.detached = node.parent != null;
     }
     node.lane = lane;
   } else {
     let index = -1;
-    let child_idx = 0;
-    let children = lane_refs[lane.id]?.children[0]?.children; // depends on layout!
+    let childIdx = 0;
+    let children = laneRefs[lane.id]?.children[0]?.children; // depends on layout!
     for (const child of children) {
       if (child.getBoundingClientRect().top > y) {
-        index = child_idx;
+        index = childIdx;
         break;
       }
-      child_idx += 1;
+      childIdx += 1;
     }
     if (index == -1) {
-      lane.top_level_nodes.push(node);
+      lane.topLevelNodes.push(node);
     } else {
-      lane.top_level_nodes.splice(index, 0, node);
+      lane.topLevelNodes.splice(index, 0, node);
     }
 
     node.detached = node.parent != null;
@@ -309,12 +294,12 @@ function change_lane(node, lane, y) {
     dragged.value.blocked = true;
     nextTick(() => {
       nextTick(() => {
-        move_up(node, y);
+        moveUp(node, y);
       });
     });
   }
 }
-function move_up(node, y) {
+function moveUp(node, y) {
   dragged.value.blocked = false;
 
   if (dragged.value.ref.getBoundingClientRect().top <= y) {
@@ -322,17 +307,17 @@ function move_up(node, y) {
     return;
   }
 
-  if (node.top_level) {
-    let index = node.lane.top_level_nodes.indexOf(node);
+  if (node.topLevel) {
+    let index = node.lane.topLevelNodes.indexOf(node);
     if (index == 0) {
       // top of list
       return;
     }
-    let node_above = node.lane.top_level_nodes[index - 1];
-    node.lane.top_level_nodes.splice(index, 1);
+    let nodeAbove = node.lane.topLevelNodes[index - 1];
+    node.lane.topLevelNodes.splice(index, 1);
     if (
-      node.recursive_parent_ids.includes(node_above.id) &&
-      node.recursive_parents.every((n) => n.expanded)
+      node.recursiveParentIds.includes(nodeAbove.id) &&
+      node.recursiveParents.every((n) => n.expanded)
     ) {
       // move into parent
       node.lane = null;
@@ -342,7 +327,7 @@ function move_up(node, y) {
       node.parent.children.push(node);
     } else {
       // switch with node above
-      node.lane.top_level_nodes.splice(index - 1, 0, node);
+      node.lane.topLevelNodes.splice(index - 1, 0, node);
     }
   } else {
     let index = node.parent.children.indexOf(node);
@@ -353,19 +338,19 @@ function move_up(node, y) {
     } else {
       // top of list, put above parent node
       let lane = node.lane;
-      let index = node.lane.top_level_nodes.indexOf(
-        node.recursive_parents.at(-1)
+      let index = node.lane.topLevelNodes.indexOf(
+        node.recursiveParents.at(-1)
       );
       if (index == -1) {
         console.error(
           "could not determine node's root parent index",
           node,
-          node.recursive_parents.at(-1),
-          node.lane.top_level_nodes
+          node.recursiveParents.at(-1),
+          node.lane.topLevelNodes
         );
         return;
       }
-      lane.top_level_nodes.splice(index, 0, node);
+      lane.topLevelNodes.splice(index, 0, node);
       node.detached = true;
       node.lane = lane;
     }
@@ -374,11 +359,11 @@ function move_up(node, y) {
   dragged.value.blocked = true;
   nextTick(() => {
     nextTick(() => {
-      move_up(node, y);
+      moveUp(node, y);
     });
   });
 }
-function move_down(node, y) {
+function moveDown(node, y) {
   dragged.value.blocked = false;
 
   if (dragged.value.ref.getBoundingClientRect().bottom >= y) {
@@ -386,17 +371,17 @@ function move_down(node, y) {
     return;
   }
 
-  if (node.top_level) {
-    let index = node.lane.top_level_nodes.indexOf(node);
-    if (index + 1 == node.lane.top_level_nodes.length) {
+  if (node.topLevel) {
+    let index = node.lane.topLevelNodes.indexOf(node);
+    if (index + 1 == node.lane.topLevelNodes.length) {
       // bottom of list
       return;
     }
-    let node_below = node.lane.top_level_nodes[index + 1];
-    node.lane.top_level_nodes.splice(index, 1);
+    let nodeBelow = node.lane.topLevelNodes[index + 1];
+    node.lane.topLevelNodes.splice(index, 1);
     if (
-      node.recursive_parent_ids.includes(node_below.id) &&
-      node.recursive_parents.every((n) => n.expanded)
+      node.recursiveParentIds.includes(nodeBelow.id) &&
+      node.recursiveParents.every((n) => n.expanded)
     ) {
       // move into parent
       node.lane = null;
@@ -406,7 +391,7 @@ function move_down(node, y) {
       node.parent.children.splice(0, 0, node);
     } else {
       // switch with node below
-      node.lane.top_level_nodes.splice(index + 1, 0, node);
+      node.lane.topLevelNodes.splice(index + 1, 0, node);
     }
   } else {
     let index = node.parent.children.indexOf(node);
@@ -417,17 +402,17 @@ function move_down(node, y) {
     } else {
       // bottom of list, put below parent node
       let lane = node.lane;
-      let index = lane.top_level_nodes.indexOf(node.recursive_parents.at(-1));
+      let index = lane.topLevelNodes.indexOf(node.recursiveParents.at(-1));
       if (index == -1) {
         console.error(
           "could not determine node's root parent index",
           node,
-          node.recursive_parents.at(-1),
-          node.lane.top_level_nodes
+          node.recursiveParents.at(-1),
+          node.lane.topLevelNodes
         );
         return;
       }
-      lane.top_level_nodes.splice(index + 1, 0, node);
+      lane.topLevelNodes.splice(index + 1, 0, node);
       node.detached = true;
       node.lane = lane;
     }
@@ -436,50 +421,50 @@ function move_down(node, y) {
   dragged.value.blocked = true;
   nextTick(() => {
     nextTick(() => {
-      move_down(node, y);
+      moveDown(node, y);
     });
   });
 }
-function dragstart_card(node_ids, x, y) {
+function dragstartCard(nodeIds, x, y) {
   dragged.value.x = x;
   dragged.value.y = y;
-  dragged.value.nodes = node_ids.map((nid) => nodes.value[nid]);
+  dragged.value.nodes = nodeIds.map((nid) => nodes.value[nid]);
   // Note: setting the dragged entry will set it to invisible and it will not be shown
   // during the drag operation. Delaying the invisibility by one frame will generate a
   // drag image and then hide the original card.
   window.requestAnimationFrame(function () {
-    for (let node_id of node_ids) {
-      kanban.value.nodes[node_id].dragged = true;
+    for (let nodeId of nodeIds) {
+      kanban.value.nodes[nodeId].dragged = true;
     }
   });
 }
 function drop(evt) {
-  let drag_data_str = evt.dataTransfer.getData('application/json');
-  if (drag_data_str == null) {
+  let dragDataStr = evt.dataTransfer.getData('application/json');
+  if (dragDataStr == null) {
     // not a drag event for us
     return;
   }
   try {
-    var drag_data = JSON.parse(drag_data_str);
+    var dragData = JSON.parse(dragDataStr);
   } catch (err) {
-    console.warn('Failed to decode json from drag object:', drag_data_str);
+    console.warn('Failed to decode json from drag object:', dragDataStr);
     return;
   }
-  if (drag_data['node_ids'] == null) {
+  if (dragData['nodeIds'] == null) {
     // not a drag event for us
     return;
   }
-  let node_ids = drag_data['node_ids'];
+  let nodeIds = dragData['nodeIds'];
   evt.stopPropagation();
-  let nodes = node_ids.map((nid) => kanban.value.nodes[nid]);
+  let nodes = nodeIds.map((nid) => kanban.value.nodes[nid]);
   let lane = nodes[0].lane;
-  let ordered_nodes = lane.nodes;
-  emit('moved_cards', {
+  let orderedNodes = lane.nodes;
+  emit('movedCards', {
     lane: lane.id,
     cards: nodes.map((n) => {
       return {
         id: n.id,
-        order: ordered_nodes.indexOf(n),
+        order: orderedNodes.indexOf(n),
         detached: n.detached,
       };
     }),
@@ -490,7 +475,7 @@ function drop(evt) {
   dragged.value.nodes = [];
   dragged.value.ref = null;
 }
-function dragging_ref(ref) {
+function draggingRef(ref) {
   dragged.value.ref = ref;
 }
 </script>

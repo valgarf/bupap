@@ -3,7 +3,7 @@
     <!-- <div v-if="result" class="self-center text-h4 text-weight-bold">
       {{ result?.project?.name }}
     </div> -->
-    <KanbanBoard v-if="kanbanData != null" :initial_data="kanbanData" />
+    <KanbanBoard v-if="kanbanData != null" :initial-data="kanbanData" />
     <query-status
       :loading="loading || (kanbanData == null && error == null)"
       :error="error"
@@ -75,7 +75,7 @@ const kanbanData = computed(() => {
   const data = {
     priorities: [],
     lanes: {},
-    lane_order: [
+    laneOrder: [
       'REQUEST',
       'PLANNING',
       'DEFERRED',
@@ -95,20 +95,20 @@ const kanbanData = computed(() => {
     const lane = {
       title: state,
       id: state,
-      priority_sorted: false,
-      finished_sorted: false,
-      card_order: [],
+      prioritySorted: false,
+      finishedSorted: false,
+      cardOrder: [],
     };
     if (['REQUEST', 'PLANNING', 'SCHEDULED'].includes(state)) {
-      lane.priority_sorted = true;
+      lane.prioritySorted = true;
     }
     if (['DONE'].includes(state)) {
-      lane.finished_sorted = true;
+      lane.finishedSorted = true;
     }
     data.lanes[state] = lane;
   }
 
-  for (let lane of data.lane_order) {
+  for (let lane of data.laneOrder) {
     addLane(lane);
   }
 
@@ -117,8 +117,8 @@ const kanbanData = computed(() => {
     const card = {
       title: task.name,
       id: task.dbId,
-      lane_id: lane.id,
-      parent_id: task.parent?.dbId,
+      laneId: lane.id,
+      parentId: task.parent?.dbId,
       depth: 0,
       tags: [],
       detached: !task.attached,
@@ -130,34 +130,34 @@ const kanbanData = computed(() => {
       active: task.progress.active,
       priority: task.priority,
       link: true,
-      finished_at: DateTime.fromISO(task.finishedAt).toISODate(),
-      children_order: [],
+      finishedAt: DateTime.fromISO(task.finishedAt).toISODate(),
+      childrenOrder: [],
     };
-    lane.card_order.push(card.id);
+    lane.cardOrder.push(card.id);
     data.cards[card.id] = card;
   }
 
   for (let card of Object.values(data.cards)) {
-    if (card.parent_id != null) {
-      if (data.cards[card.parent_id] == null) {
-        console.warn(`Unknown card id ${card.parent_id}`);
+    if (card.parentId != null) {
+      if (data.cards[card.parentId] == null) {
+        console.warn(`Unknown card id ${card.parentId}`);
         data.cards[card.id] = undefined;
       } else {
-        data.cards[card.parent_id].children_order.push(card.id);
+        data.cards[card.parentId].childrenOrder.push(card.id);
       }
     }
   }
 
-  function set_depth_rec(card, value = 0) {
+  function setDepthRec(card, value = 0) {
     card.depth = value;
-    for (let child_id of card.children_order) {
-      set_depth_rec(data.cards[child_id], value + 1);
+    for (let childId of card.childrenOrder) {
+      setDepthRec(data.cards[childId], value + 1);
     }
   }
 
   for (let card of Object.values(data.cards)) {
-    if (card.parent_id == null) {
-      set_depth_rec(card);
+    if (card.parentId == null) {
+      setDepthRec(card);
     }
   }
 

@@ -8,7 +8,7 @@
     <q-btn
       flat
       no-caps
-      @click="open_link(card)"
+      @click="openLink(card)"
       class="q-ma-none q-px-sm q-py-none q-mb-md"
     >
       <div
@@ -65,8 +65,8 @@
       </svg>
       <div>~{{ progress[1] }}% ({{ progress[0] }}% - {{ progress[2] }}%)</div>
     </div>
-    <div v-if="finished_at != null" class="q-pl-sm">
-      Finished: {{ finished_at }}
+    <div v-if="finishedAt != null" class="q-pl-sm">
+      Finished: {{ finishedAt }}
     </div>
     <div v-if="!detached" class="row q-pl-sm q-mt-sm">
       <q-badge
@@ -96,8 +96,34 @@
 
 <script lang='ts'>
 export interface Tag {
+  key: string;
   text: string;
   color: string;
+}
+
+export interface Progress {
+    0: number;
+    1: number;
+    2: number;
+}
+
+
+export interface Card {
+  id: string;
+  title: string;
+  progress: Progress | null;
+  active: boolean;
+  finishedAt: string | null;
+  tags: Tag[];
+  priority: string;
+  // Other possible properties of Card go here.
+}
+
+export interface CardProps {
+  card: Card;
+  detached: boolean;
+  dragged: boolean;
+  priorities: Tag[];
 }
 
 // export interface KanbanCardData {}
@@ -113,21 +139,17 @@ import {
   onUpdated,
 } from 'vue';
 import { textColorFromBackground } from 'src/common/helper';
-const props = defineProps({
-  card: { type: Object as () => Tag },
-  detached: Boolean,
-  dragged: Boolean,
-  priorities: { type: Array<Tag>, default: [] },
-});
+const props = withDefaults(defineProps<CardProps>(), { priorities: () => [], dragged: false, detached: false })
+
 const cardElement = ref(null);
 const progressSvg = ref(null);
-const emit = defineEmits(['dragging_ref', 'open_link']);
+const emit = defineEmits(['draggingRef', 'openLink']);
 
 onMounted(() => {
-  check_dragged();
+  checkDragged();
 });
 onUpdated(() => {
-  check_dragged();
+  checkDragged();
 });
 
 const progress = computed(() => {
@@ -142,7 +164,7 @@ const progress = computed(() => {
 });
 
 const active = computed(() => props.card.active);
-const finished_at = computed(() => props.card.finished_at);
+const finishedAt = computed(() => props.card.finishedAt);
 const tags = computed(() => {
   var tags = [...props.card.tags];
   if (props.priorities != null) {
@@ -155,16 +177,16 @@ const tags = computed(() => {
   return tags;
 });
 
-function check_dragged() {
+function checkDragged() {
   if (props.dragged) {
     if (cardElement.value != null) {
       let refEl = cardElement.value._.subTree.el;
-      emit('dragging_ref', refEl);
+      emit('draggingRef', refEl);
     }
   }
 }
-function open_link(val) {
-  emit('open_link', val);
+function openLink(val: Card) {
+  emit('openLink', val);
 }
 function classes() {
   if (props.detached) {

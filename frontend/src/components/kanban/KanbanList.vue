@@ -1,72 +1,70 @@
 <template>
-  <div :class="column_classes()">
+  <div :class="columnClasses()">
     <div
-      v-for="node in list_entries()"
-      :class="card_div_classes(node)"
-      :key="node_key(node)"
+      v-for="node in listEntries()"
+      :class="cardDivClasses(node)"
+      :key="nodeKey(node)"
       @dragstart="(evt) => dragstart(node, evt)"
     >
       <template v-if="node.card.detached && depth == 0">
         <KanbanCard
           class="q-mt-none"
-          :class="card_classes(node.parent)"
           :card="node.parent.card"
           :detached="true"
           :dragged="false"
           :priorities="priorities"
-          @open_link="open_link"
+          @open-link="openLink"
         />
         <div class="row items-stretch">
           <div style="width: 32px"></div>
           <KanbanList
             class="col-grow"
-            :parent_id="node.parent.id"
+            :parent-id="node.parent.id"
             :nodes="[node]"
             :depth="depth + 1"
-            :detached_parent="true"
+            :detached-parent="true"
             :priorities="priorities"
-            @toggle_expand="toggle_expand"
-            @dragging_ref="dragging_ref"
-            @dragstart_card="dragstart_card"
-            @open_link="open_link"
+            @toggle-expand="toggleExpand"
+            @dragging-ref="draggingRef"
+            @dragstart-card="dragstartCard"
+            @open-link="openLink"
           />
         </div>
       </template>
       <template v-else>
         <KanbanCard
-          :draggable="!node_is_detached(node)"
-          :class="card_classes(node)"
+          :draggable="!nodeIsDetached(node)"
           :card="node.card"
-          :detached="node_is_detached(node)"
-          :dragged="node_is_drag_target(node)"
+          :detached="nodeIsDetached(node)"
+          :dragged="nodeIsDragTarget(node)"
           :priorities="priorities"
-          @dragging_ref="dragging_ref"
-          @open_link="open_link"
+          @dragging-ref="draggingRef"
+          @open-link="openLink"
         />
         <div
           v-if="
             node.children.length > 0 &&
-            !(node.card.detached && depth > 0 && !detached_parent)
+            !(node.card.detached && depth > 0 && !detachedParent)
           "
           class="row items-stretch"
         >
           <q-btn
-            :class="toggle_btn_classes(node)"
-            @click="(evt) => toggle_expand(node)"
-            >{{ toggle_btn_text(node) }}</q-btn
+            :class="toggleBtnClasses(node)"
+            @click="(evt) => toggleExpand(node)"
+            >{{ toggleBtnText(node) }}</q-btn
           >
           <KanbanList
             v-if="node.expanded && !node.dragged"
             class="col-grow"
-            :parent_id="node.id"
+            :parent-id="node.id"
             :nodes="node.children"
             :depth="depth + 1"
-            :detached_parent="false"
+            :detached-parent="false"
             :priorities="priorities"
-            @toggle_expand="toggle_expand"
-            @dragging_ref="dragging_ref"
-            @dragstart_card="dragstart_card"
-            @open_link="open_link"
+            @toggle-expand="toggleExpand"
+            @dragging-ref="draggingRef"
+            @dragstart-card="dragstartCard"
+            @open-link="openLink"
           />
         </div>
       </template>
@@ -86,44 +84,44 @@ import { computed, defineProps, defineEmits, ref } from 'vue';
 import KanbanCard from './KanbanCard.vue';
 
 const props = defineProps([
-  'parent_id',
+  'parentId',
   'nodes',
   'depth',
-  'detached_parent',
+  'detachedParent',
   'priorities',
 ]);
 const emit = defineEmits([
-  'dragstart_card',
-  'dragging_ref',
-  'open_link',
-  'toggle_expand',
+  'dragstartCard',
+  'draggingRef',
+  'openLink',
+  'toggleExpand',
 ]);
-function list_entries() {
+function listEntries() {
   return props.nodes;
 }
-function node_key(node) {
+function nodeKey(node) {
   return (
     props.depth +
     '-' +
-    props.parent_id +
+    props.parentId +
     '-' +
     node.id +
     '-' +
-    props.detached_parent +
+    props.detachedParent +
     '-' +
     node.card.detached
   );
 }
-function node_is_detached(node) {
-  return node.card.detached && props.depth > 0 && !props.detached_parent;
+function nodeIsDetached(node) {
+  return node.card.detached && props.depth > 0 && !props.detachedParent;
 }
-function node_is_drag_target(node) {
-  return node.dragged && !node_is_detached(node);
+function nodeIsDragTarget(node) {
+  return node.dragged && !nodeIsDetached(node);
 }
 // open_link(val) {
 //     console.log(val);
 // },
-function column_classes() {
+function columnClasses() {
   var result = ['column', 'q-pa-none', 'q-ma-none', 'items-stretch'];
   if (props.depth == 0) {
     result.push('q-gutter-md');
@@ -133,62 +131,55 @@ function column_classes() {
   }
   return result;
 }
-function toggle_btn_classes(node) {
+function toggleBtnClasses(node) {
   if (node.expanded) {
     return ['q-mt-sm', 'q-mr-xs'];
   } else {
     return 'q-ml-xl col-grow q-mt-sm';
   }
 }
-function card_div_classes(node) {
+function cardDivClasses(node) {
   var result = [];
   // if (card.depth > 0)
   // result.push("mt-[-4pt]")
-  if (!show_card(node)) {
+  if (!showCard(node)) {
     result.push('invisible');
   }
   return result;
 }
-function card_classes(card) {
-  var result = [];
-  // if (!this.show_card(card)) {
-  //     result.push("invisible")
-  // }
-  return result;
-}
-function toggle_btn_text(node) {
+function toggleBtnText(node) {
   if (node.expanded) {
     return '';
   }
   let num = node.children.length;
   return num + ' ' + (num > 1 ? 'subtasks' : 'subtask');
 }
-function show_card(node) {
-  return !node.dragged || node_is_detached(node);
+function showCard(node) {
+  return !node.dragged || nodeIsDetached(node);
   // return (this.dragged.entry == null || this.dragged.entry.id != card.id);
 }
-function toggle_expand(node) {
-  emit('toggle_expand', node);
+function toggleExpand(node) {
+  emit('toggleExpand', node);
 }
 function dragstart(node, evt) {
   evt.dataTransfer.clearData();
-  let drag_data = {
-    parent_id: node.parent == null ? null : node.parent.id,
-    node_ids: [node.id],
+  let dragData = {
+    parentId: node.parent == null ? null : node.parent.id,
+    nodeIds: [node.id],
   };
-  evt.dataTransfer.setData('application/json', JSON.stringify(drag_data));
+  evt.dataTransfer.setData('application/json', JSON.stringify(dragData));
   // TODO: set task url
   evt.stopPropagation();
-  dragstart_card([node.id], evt.x, evt.y);
+  dragstartCard([node.id], evt.x, evt.y);
 }
-function dragstart_card(node_ids, x, y) {
-  emit('dragstart_card', node_ids, x, y);
+function dragstartCard(nodeIds, x, y) {
+  emit('dragstartCard', nodeIds, x, y);
 }
-function dragging_ref(ref) {
-  emit('dragging_ref', ref);
+function draggingRef(ref) {
+  emit('draggingRef', ref);
 }
-function open_link(val) {
-  emit('open_link', val);
+function openLink(val) {
+  emit('openLink', val);
 }
 </script>
 
