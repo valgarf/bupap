@@ -18,6 +18,11 @@
         <q-scroll-area
           class="q-ma-none q-pa-none q-pr-sm col-grow"
           :visible="true"
+          :ref="
+              (r) => {
+                laneScrollAreas[lane.id] = r;
+              }
+            "
         >
           <div
             class="q-pa-md"
@@ -72,11 +77,13 @@ import {
 } from 'vue';
 import {useElementSize} from '@vueuse/core'
 import { KanbanNode, KanbanLaneNode, KanbanProps, KanbanPropsData, Tag } from './interfaces';
-
+import { QScrollArea } from 'quasar';
+import { onMounted, onBeforeUnmount } from 'vue';
 const props = defineProps<KanbanProps>();
 const emit = defineEmits(['movedCards', 'openLink']);
 const kanban = ref<KanbanState | null>(null);
 const laneRefs = {};
+const laneScrollAreas = {};
 watchEffect(() => {
   kanban.value = computeKanban(props.initialData);
 });
@@ -90,9 +97,14 @@ const dragged = ref({
   ref: null,
   blocked: false,
   nodes: [],
+  scrollLaneId: null,
+  scrollDirection: null,
+  lastScrollDirection: null,
+  scrollSpeed:0,
+  lastY: 0
 });
 
-const scrollArea = ref(null);
+const scrollArea = ref<QScrollArea | null>(null);
 const { height: scrollAreaHeight }=useElementSize(scrollArea)
 const scrollContentStyle = computed(() => {
   if (scrollAreaHeight.value == 0) {
@@ -104,6 +116,50 @@ const scrollContentStyle = computed(() => {
 function openLink(val) {
   emit('openLink', val);
 }
+
+function scrollingUpdate() {
+  if (dragged.value.scrollLaneId == null || kanban.value?.lanes[dragged.value.scrollLaneId].finishedSorted) {
+    return
+  }
+  if (dragged.value.lastScrollDirection != null) {
+    if (dragged.value.ref != null) {
+      for (const node of dragged.value.nodes) {
+        if (dragged.value.lastScrollDirection == 'up') {
+          moveUp(node, dragged.value.lastY)
+        }
+        else {
+          moveDown(node, dragged.value.lastY)
+        }
+      }
+    }
+    dragged.value.lastScrollDirection = null
+  }
+  if (dragged.value.scrollDirection != null && dragged.value.scrollLaneId != null) {
+    const lane: QScrollArea = laneScrollAreas[dragged.value.scrollLaneId];
+    dragged.value.scrollSpeed = Math.min(200, Math.max(50, dragged.value.scrollSpeed + 10))
+    const offset = dragged.value.scrollDirection == 'down' ? dragged.value.scrollSpeed : -dragged.value.scrollSpeed;
+    lane.setScrollPosition("vertical", lane.getScrollPosition().top + offset, 150)
+    dragged.value.lastScrollDirection = dragged.value.scrollDirection
+  }
+  else {
+    dragged.value.scrollSpeed = 0
+  }
+}
+
+
+const timer = ref();
+
+// Instantiate
+onMounted(() => {
+  timer.value = setInterval(() => {
+    scrollingUpdate();
+  }, 50);
+});
+
+// Clean up
+onBeforeUnmount(() => {
+  timer.value = null;
+});
 
 function computeKanban(initialData: KanbanPropsData):KanbanState {
   let nodes: {[key: number]: KanbanNode} = {};
@@ -148,11 +204,13 @@ function toggleExpand(node: KanbanNode) {
 }
 
 function dragover(lane: KanbanLaneNode, evt) {
+  dragged.value.scrollDirection = null
   if (dragged.value.blocked || dragged.value.ref == null) {
     return;
   }
   let x = evt.y;
   let y = evt.y;
+  dragged.value.lastY = y;
   let down = y > dragged.value.y; // movement direction is down
   let up =
     !down &&
@@ -180,7 +238,24 @@ function dragover(lane: KanbanLaneNode, evt) {
       changeLane(node, lane, y);
     }
   }
+
+  dragged.value.scrollLaneId = lane.id
+  if (scrollArea.value != null) {
+    if (evt.y > scrollArea.value.$el.getBoundingClientRect().bottom - 50) {
+      dragged.value.scrollDirection = 'down'
+    }
+    else if (evt.y < scrollArea.value.$el.getBoundingClientRect().top + 50) {
+      dragged.value.scrollDirection = 'up'
+    }
+    else {
+      dragged.value.scrollDirection = null
+    }
+  }
+  else {
+    dragged.value.scrollDirection = null
+  }
 }
+
 function changeLane(node, lane, y) {
   // TODO cannot simply modify a computed variable
   if (node.lane.id == lane.id) {
@@ -402,6 +477,8 @@ function drop(evt) {
   }
   dragged.value.nodes = [];
   dragged.value.ref = null;
+  dragged.value.scrollDirection = null;
+  dragged.value.scrollLaneId = null;
 }
 function draggingRef(ref) {
   dragged.value.ref = ref;
