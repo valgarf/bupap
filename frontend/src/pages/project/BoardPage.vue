@@ -3,7 +3,7 @@
     <!-- <div v-if="result" class="self-center text-h4 text-weight-bold">
       {{ result?.project?.name }}
     </div> -->
-    <KanbanBoard v-if="kanbanData != null" :initial-data="kanbanData" />
+    <KanbanBoard v-if="kanbanData != null" :initial-data="kanbanData" @moved-cards="movedCards" />
     <query-status
       :loading="loading || (kanbanData == null && error == null)"
       :error="error"
@@ -12,7 +12,7 @@
 </template>
 
 <script setup lang='ts'>
-import { useQuery } from '@vue/apollo-composable';
+import { useQuery, useMutation } from '@vue/apollo-composable';
 import { useRoute } from 'vue-router';
 import QueryStatus from 'src/components/QueryStatus.vue';
 import { DateTime } from 'luxon'; 
@@ -29,6 +29,7 @@ const { result, loading, error } = useQuery(
       project: dbNode(typename: "Project", dbId: $dbId) {
         __typename
         ... on Project {
+          id
           name
           tasks {
             id
@@ -169,4 +170,37 @@ const kanbanData = computed(() => {
 
   return data;
 });
+
+const UPDATE_TASKS_POSITION = graphql(`
+  mutation moveTasks($projectDbId: Int!, $state: TaskState!, $tasks: [MovedTaskInput!]!) {
+    project {
+      movedTasks(projectDbId: $projectDbId, state: $state, tasks: $tasks) {
+        success
+      }
+    }
+  }
+`);
+
+const { mutate: moveTasks } = useMutation(UPDATE_TASKS_POSITION);
+
+
+async function movedCards(evt) {
+  const projectDbId = parseInt(route.params.id as string)
+  const tasks = evt.cards.map((card) => {
+    return {
+      taskDbId: card.id,
+      orderId: card.order,
+      detached: card.detached,
+    };
+  });
+
+  const response = await moveTasks({
+    projectDbId: projectDbId,
+      state: evt.lane,
+      tasks: tasks,
+    }
+  );
+
+  return response;
+}
 </script>

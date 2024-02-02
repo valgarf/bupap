@@ -8,6 +8,7 @@ from strawberry.types import Info
 from bupap import db
 
 from ..common.context import Context, InfoContext
+from .project import ProjectMutation
 from .user import User, UserMutation
 
 
@@ -38,3 +39,4 @@ class Mutation:
     login: User | None = strawberry.field(resolver=login)
     logout: User | None = strawberry.field(resolver=logout)
     user: UserMutation = strawberry.field(resolver=UserMutation)
+    project: ProjectMutation = strawberry.field(resolver=ProjectMutation)

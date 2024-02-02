@@ -1,0 +1,344 @@
+type AssignedTeamRole implements Node {
+  dbId: Int!
+
+  """The Globally Unique ID of this object"""
+  id: GlobalID!
+  role: Role!
+  team: Team!
+  user: User!
+}
+
+type Avatar {
+  accessory: AvatarPart!
+  backgroundColor: String!
+  beard: AvatarPart!
+  beardColor: String!
+  clothing: AvatarPart!
+  clothingColor: String!
+  eyebrows: AvatarPart!
+  eyes: AvatarPart!
+  graphic: AvatarPart!
+  hairColor: String!
+  hatColor: String!
+  mouth: AvatarPart!
+  nose: AvatarPart!
+  shirtText: String!
+  skinColor: String!
+  svg: String!
+  top: AvatarPart!
+}
+
+type AvatarAPI {
+  accessories: [AvatarPart!]!
+  beards: [AvatarPart!]!
+  clothings: [AvatarPart!]!
+  create(avatar: AvatarInput!): Avatar!
+  eyebrows: [AvatarPart!]!
+  eyes: [AvatarPart!]!
+  graphics: [AvatarPart!]!
+  mouths: [AvatarPart!]!
+  noses: [AvatarPart!]!
+  random: Avatar!
+  tops: [AvatarPart!]!
+}
+
+input AvatarInput {
+  accessory: String!
+  backgroundColor: String!
+  beard: String!
+  beardColor: String!
+  clothing: String!
+  clothingColor: String!
+  eyebrows: String!
+  eyes: String!
+  graphic: String!
+  hairColor: String!
+  hatColor: String!
+  mouth: String!
+  nose: String!
+  shirtText: String!
+  skinColor: String!
+  top: String!
+}
+
+type AvatarPart {
+  name: String!
+  svg: String
+}
+
+scalar Base64
+
+"""Date with time (isoformat)"""
+scalar DateTime
+
+type Estimate implements Node {
+  createdAt: DateTime!
+  dbId: Int!
+  estimateType: EstimateType!
+  estimatedDuration: Base64!
+  expectationAverage: Base64!
+  expectationOptimistic: Base64!
+  expectationPessimistic: Base64!
+
+  """The Globally Unique ID of this object"""
+  id: GlobalID!
+  task: Task!
+  user: User!
+}
+
+type EstimateDatapoint {
+  actualWork: Base64!
+  end: DateTime!
+  estimate: Estimate!
+  numWorkPeriods: Int!
+  start: DateTime!
+  value: Float!
+}
+
+type EstimateStatistics implements Node {
+  datapoints: [EstimateDatapoint!]!
+  dbId: Int!
+  estimateType: EstimateType!
+  evaluated: DateTime!
+
+  """The Globally Unique ID of this object"""
+  id: GlobalID!
+  numDatapoints: Int!
+  shiftAverage: Float!
+  shiftOptimistic: Float!
+  shiftPessimistic: Float!
+  sufficient: Boolean!
+  user: User!
+}
+
+type EstimateType implements Node {
+  dbId: Int!
+  defaultShiftAverage: Float!
+  defaultShiftOptimistic: Float!
+  defaultShiftPessimistic: Float!
+  description: String!
+  estimateStatistics: [EstimateStatistics!]!
+
+  """The Globally Unique ID of this object"""
+  id: GlobalID!
+  maxDatapoints: Int!
+  minDatapoints: Int!
+  name: String!
+  relative: Boolean!
+}
+
+"""
+The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID.
+"""
+scalar GlobalID
+
+input MovedTaskInput {
+  detached: Boolean!
+  orderId: Int!
+  taskDbId: Int!
+}
+
+type Mutation {
+  login(name: String!, password: String!): User
+  logout: User
+  project: ProjectMutation!
+  user: UserMutation!
+}
+
+type MutationResult {
+  success: Boolean!
+}
+
+"""An object with a Globally Unique ID"""
+interface Node {
+  """The Globally Unique ID of this object"""
+  id: GlobalID!
+}
+
+type Period {
+  end: DateTime!
+  start: DateTime!
+}
+
+type Project implements Node {
+  children(recursive: Boolean! = false): [Project!]!
+  dbId: Int!
+
+  """The Globally Unique ID of this object"""
+  id: GlobalID!
+  name: String!
+  parent: Project
+  parents: [Project!]!
+  priorities: [Tag!]!
+  tasks: [Task!]!
+}
+
+type ProjectMutation {
+  movedTasks(projectDbId: Int!, state: TaskState!, tasks: [MovedTaskInput!]!): MutationResult!
+}
+
+type Query {
+  activeUser: User
+  avatarApi: AvatarAPI!
+  dbNode(dbId: Int!, typename: String!): Node
+  node(
+    """The ID of the object."""
+    id: GlobalID!
+  ): Node
+  projects(toplevel: Boolean! = false): [Project!]!
+  teams: [Team!]!
+  users: [User!]!
+}
+
+type Role implements Node {
+  builtin: Boolean!
+  dbId: Int!
+
+  """The Globally Unique ID of this object"""
+  id: GlobalID!
+  name: String!
+  roleType: RoleType!
+}
+
+enum RoleType {
+  GLOBAL
+  PROJECT
+  TEAM
+}
+
+type Schedule {
+  actual: Period!
+  covers: Period!
+  now: DateTime!
+  userSchedules: [ScheduleUser!]!
+}
+
+enum ScheduleMode {
+  AVERAGE
+  OPTIMISTIC
+  PESSIMISTIC
+}
+
+type SchedulePeriod {
+  color: String!
+  period: Period!
+  text: String!
+}
+
+input ScheduleRequest {
+  end: DateTime!
+  mode: ScheduleMode! = AVERAGE
+  start: DateTime!
+}
+
+type ScheduleUser {
+  scheduledTasks: [SchedulePeriod!]!
+  timesinks: [SchedulePeriod!]!
+  user: User!
+  workedTasks: [SchedulePeriod!]!
+  workingPeriods: [Period!]!
+}
+
+type Tag {
+  color: String!
+  key: String
+  text: String!
+}
+
+type Task implements Node {
+  active: Boolean!
+  attached: Boolean!
+  children: [Task!]!
+  dbId: Int!
+  description: String!
+  finishedAt: DateTime
+
+  """The Globally Unique ID of this object"""
+  id: GlobalID!
+  name: String!
+  orderId: Int
+  parent: Task
+  priority: TaskPriority!
+  progress: TaskProgress!
+  state: TaskState!
+  tags: [Tag!]!
+  type: TaskType!
+}
+
+enum TaskPriority {
+  HIGH
+  LOW
+  MEDIUM
+  VERY_HIGH
+  VERY_LOW
+}
+
+type TaskProgress {
+  active: Boolean!
+  average: Int!
+  optimistic: Int!
+  pessimistic: Int!
+}
+
+enum TaskState {
+  DEFERRED
+  DISCARDED
+  DONE
+  HOLD
+  PLANNING
+  REQUEST
+  SCHEDULED
+}
+
+enum TaskType {
+  ADHOC
+  BUG
+  FEATURE
+}
+
+type Team implements Node {
+  assignedRoles: [AssignedTeamRole!]!
+  dbId: Int!
+
+  """The Globally Unique ID of this object"""
+  id: GlobalID!
+  name: String!
+  schedule(input: ScheduleRequest!): Schedule!
+}
+
+type User implements Node {
+  activity: [UserActivity!]!
+  avatar: Avatar!
+  dbId: Int!
+  estimateStatistics: [EstimateStatistics!]!
+  fullName: String!
+
+  """The Globally Unique ID of this object"""
+  id: GlobalID!
+  name: String!
+  projectSummaries: [UserProjectSummary!]!
+  renderedAvatar: String!
+}
+
+type UserActivity {
+  at: DateTime!
+  details: String!
+  short: String!
+}
+
+input UserInput {
+  avatar: AvatarInput = null
+  fullName: String = null
+  name: String = null
+}
+
+type UserMutation {
+  update(user: UserInput!, userId: Int!): MutationResult!
+}
+
+type UserProjectSummary {
+  numTasksDone: Int!
+  numTasksOpen: Int!
+  project: Project!
+  totalDuration: Base64!
+}
