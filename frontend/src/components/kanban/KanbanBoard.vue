@@ -98,6 +98,7 @@ const dragged = ref({
   blocked: false,
   nodes: [],
   scrollLaneId: null,
+  scrollRelativePos: null,
   scrollDirection: null,
   lastScrollDirection: null,
   scrollSpeed:0,
@@ -136,7 +137,7 @@ function scrollingUpdate() {
   }
   if (dragged.value.scrollDirection != null && dragged.value.scrollLaneId != null) {
     const lane: QScrollArea = laneScrollAreas[dragged.value.scrollLaneId];
-    dragged.value.scrollSpeed = Math.min(200, Math.max(50, dragged.value.scrollSpeed + 10))
+    dragged.value.scrollSpeed = Math.min(1000 * dragged.value.scrollRelativePos, Math.max(50, dragged.value.scrollSpeed * (1 + dragged.value.scrollRelativePos)))
     const offset = dragged.value.scrollDirection == 'down' ? dragged.value.scrollSpeed : -dragged.value.scrollSpeed;
     lane.setScrollPosition("vertical", lane.getScrollPosition().top + offset, 150)
     dragged.value.lastScrollDirection = dragged.value.scrollDirection
@@ -149,14 +150,13 @@ function scrollingUpdate() {
 
 const timer = ref();
 
-// Instantiate
 onMounted(() => {
   timer.value = setInterval(() => {
     scrollingUpdate();
   }, 50);
 });
 
-// Clean up
+
 onBeforeUnmount(() => {
   timer.value = null;
 });
@@ -204,8 +204,8 @@ function toggleExpand(node: KanbanNode) {
 }
 
 function dragover(lane: KanbanLaneNode, evt) {
-  dragged.value.scrollDirection = null
   if (dragged.value.blocked || dragged.value.ref == null) {
+    dragged.value.scrollDirection = null
     return;
   }
   let x = evt.y;
@@ -241,11 +241,13 @@ function dragover(lane: KanbanLaneNode, evt) {
 
   dragged.value.scrollLaneId = lane.id
   if (scrollArea.value != null) {
-    if (evt.y > scrollArea.value.$el.getBoundingClientRect().bottom - 50) {
+    if (evt.y > scrollArea.value.$el.getBoundingClientRect().bottom - 200) {
       dragged.value.scrollDirection = 'down'
+      dragged.value.scrollRelativePos = (evt.y - (scrollArea.value.$el.getBoundingClientRect().bottom - 200)) / 200
     }
-    else if (evt.y < scrollArea.value.$el.getBoundingClientRect().top + 50) {
+    else if (evt.y < scrollArea.value.$el.getBoundingClientRect().top + 200) {
       dragged.value.scrollDirection = 'up'
+      dragged.value.scrollRelativePos = -(evt.y - (scrollArea.value.$el.getBoundingClientRect().top + 200)) / 200
     }
     else {
       dragged.value.scrollDirection = null
