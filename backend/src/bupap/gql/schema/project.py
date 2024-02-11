@@ -21,7 +21,7 @@ def _task_sort_key(db_task: db.Task):
     result = [
         db_task.task_state.name,
     ]
-    if db_task.task_state in [db.TaskState.DONE, db.TaskState.DONE]:
+    if db_task.task_state in [db.TaskState.DONE, db.TaskState.DISCARDED]:
         result.append(db_task.finished_at)
     else:
         result.append(-db_task.order_id or 0)
@@ -34,7 +34,6 @@ class Project(DBType, strawberry.relay.Node):
     db_id: int = map_to_db("id")
     name: str = map_to_db()
     parent: Self | None = map_to_db()
-    tasks: list[Task] = map_to_db()
 
     @strawberry.field(extensions=[DBConvExtension()])
     def tasks(self) -> list[Task]:

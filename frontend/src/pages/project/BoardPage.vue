@@ -19,7 +19,7 @@ import { DateTime } from 'luxon';
 import { computed } from 'vue';
 import KanbanBoard from 'src/components/kanban/KanbanBoard.vue';
 import { qPageStyleFnForTabsFixed } from 'src/common/helper';
-import { KanbanPropsData, Card } from 'src/components/kanban/interfaces'
+import { KanbanPropsData, Lane, Card } from 'src/components/kanban/interfaces'
 import { graphql } from 'src/gql'
 
 const route = useRoute();
@@ -99,7 +99,7 @@ const kanbanData = computed(() => {
   });
 
   function addLane(state: string) {
-    const lane = {
+    const lane: Lane = {
       title: state,
       id: state,
       prioritySorted: false,
@@ -144,7 +144,9 @@ const kanbanData = computed(() => {
     data.cards[card.id] = card;
   }
 
-  for (let card of Object.values(data.cards)) {
+  // use proj.tasks to ensure using the correct order
+  for (let task of proj.tasks) {
+    let card = data.cards[task.dbId]
     if (card.parentId != null) {
       if (data.cards[card.parentId] == null) {
         console.warn(`Unknown card id ${card.parentId}`);
@@ -167,7 +169,6 @@ const kanbanData = computed(() => {
       setDepthRec(card);
     }
   }
-
   return data;
 });
 
