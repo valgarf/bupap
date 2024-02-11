@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Self
+from typing import TYPE_CHECKING, Annotated, Self
 
 import strawberry
 
@@ -7,8 +7,46 @@ from bupap import db
 from bupap.ui.crud.task import get_estimate
 
 from ...common.enums import TaskPriority, TaskState, TaskType
-from ..common.db_type import DBType, map_to_db
+from ..common.db_type import DBConvExtension, DBType, map_to_db
+from .common import Timedelta
 from .tag import Tag
+
+if TYPE_CHECKING:
+    from .estimate import Estimate
+    from .user import User
+
+
+@strawberry.interface
+class TaskActivity:
+    timestamp: datetime
+
+
+@strawberry.type
+class TaskActivityCreated(TaskActivity):
+    pass
+
+
+@strawberry.type
+class TaskActivityFinished(TaskActivity):
+    pass
+
+
+@strawberry.type
+class TaskActivityWorkperiod(TaskActivity):
+    duration: Timedelta | None
+    user: Annotated["User", strawberry.lazy(".user")] = strawberry.field(
+        extensions=[DBConvExtension()]
+    )
+
+
+@strawberry.type
+class TaskActivityEstimateAdded(TaskActivity):
+    estimate: Annotated["Estimate", strawberry.lazy(".estimate")] = strawberry.field(
+        extensions=[DBConvExtension()]
+    )
+    user: Annotated["User", strawberry.lazy(".user")] = strawberry.field(
+        extensions=[DBConvExtension()]
+    )
 
 
 @strawberry.type
@@ -31,6 +69,7 @@ class Task(DBType, strawberry.relay.Node):
     type: TaskType = map_to_db("task_type")
     priority: TaskPriority = map_to_db("task_priority")
     finished_at: datetime | None = map_to_db()
+    created_at: datetime | None = map_to_db()
     order_id: int | None = map_to_db()
     attached: bool = map_to_db()
 
@@ -61,6 +100,42 @@ class Task(DBType, strawberry.relay.Node):
         return TaskProgress(
             active=active, pessimistic=progress[0], average=progress[1], optimistic=progress[2]
         )
+
+    @strawberry.field()
+    def activity(self) -> list[TaskActivity]:
+        db_obj: db.Task = self.db_obj
+        result = []
+        result.append(TaskActivityCreated(timestamp=db_obj.created_at))
+        if db_obj.finished_at:
+            result.append(TaskActivityFinished(timestamp=db_obj.finished_at))
+        for estimate in db_obj.estimates:
+            result.append(
+                TaskActivityEstimateAdded(
+                    timestamp=estimate.created_at, estimate=estimate, user=estimate.user
+                )
+            )
+        for wp in db_obj.work_periods:
+            result.append(
+                TaskActivityWorkperiod(
+                    timestamp=wp.ended_at if wp.ended_at is not None else wp.started_at,
+                    duration=wp.duration if wp.ended_at is not None else None,
+                    user=estimate.user,
+                )
+            )
+
+        def _sort_key(t):
+            return (
+                t.timestamp,
+                [
+                    TaskActivityCreated,
+                    TaskActivityEstimateAdded,
+                    TaskActivityWorkperiod,
+                    TaskActivityFinished,
+                ].index(type(t)),
+            )
+
+        result.sort(key=_sort_key, reverse=True)
+        return result
 
     @strawberry.field()
     def tags() -> list[Tag]:

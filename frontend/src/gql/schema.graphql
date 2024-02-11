@@ -247,8 +247,10 @@ type Tag {
 
 type Task implements Node {
   active: Boolean!
+  activity: [TaskActivity!]!
   attached: Boolean!
   children: [Task!]!
+  createdAt: DateTime
   dbId: Int!
   description: String!
   finishedAt: DateTime
@@ -263,6 +265,30 @@ type Task implements Node {
   state: TaskState!
   tags: [Tag!]!
   type: TaskType!
+}
+
+interface TaskActivity {
+  timestamp: DateTime!
+}
+
+type TaskActivityCreated implements TaskActivity {
+  timestamp: DateTime!
+}
+
+type TaskActivityEstimateAdded implements TaskActivity {
+  estimate: Estimate!
+  timestamp: DateTime!
+  user: User!
+}
+
+type TaskActivityFinished implements TaskActivity {
+  timestamp: DateTime!
+}
+
+type TaskActivityWorkperiod implements TaskActivity {
+  duration: Base64
+  timestamp: DateTime!
+  user: User!
 }
 
 enum TaskPriority {
