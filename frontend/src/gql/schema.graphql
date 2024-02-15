@@ -170,6 +170,8 @@ type Project implements Node {
   parent: Project
   parents: [Project!]!
   priorities: [Tag!]!
+  taskStates: [Tag!]!
+  taskTypes: [Tag!]!
   tasks: [Task!]!
 }
 
@@ -262,6 +264,7 @@ type Task implements Node {
   parent: Task
   priority: TaskPriority!
   progress: TaskProgress!
+  project: Project!
   state: TaskState!
   tags: [Tag!]!
   type: TaskType!

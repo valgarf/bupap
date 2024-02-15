@@ -70,6 +70,32 @@ class Project(DBType, strawberry.relay.Node):
             )
         return result
 
+    @strawberry.field()
+    def task_states(self) -> list[Tag]:
+        result = []
+        for prio in db.TaskState:
+            result.append(
+                Tag(
+                    key=prio.name,
+                    text=prio.text,
+                    color=prio.default_color,
+                )
+            )
+        return result
+
+    @strawberry.field()
+    def task_types(self) -> list[Tag]:
+        result = []
+        for prio in db.TaskType:
+            result.append(
+                Tag(
+                    key=prio.name,
+                    text=prio.text,
+                    color=prio.default_color,
+                )
+            )
+        return result
+
 
 @strawberry.input
 class MovedTaskInput:

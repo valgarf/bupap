@@ -28,12 +28,37 @@ class TaskState(Enum):
     DISCARDED = auto()
     HOLD = auto()
 
+    @property
+    def text(self):
+        return self.name.replace("_", " ")
+
+    @property
+    def default_color(self):
+        return "purple-4"
+
 
 @strawberry.enum
 class TaskType(Enum):
     FEATURE = auto()
     BUG = auto()
     ADHOC = auto()
+
+    @property
+    def text(self):
+        return self.name.replace("_", " ")
+
+    @property
+    def default_color(self):
+        match (self):
+            case TaskType.BUG:
+                result = "red-8"
+            case TaskType.FEATURE:
+                result = "indigo-8"
+            case TaskType.ADHOC:
+                result = "cyan-8"
+            case _:
+                assert False
+        return result
 
 
 @strawberry.enum

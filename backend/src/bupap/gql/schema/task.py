@@ -13,6 +13,7 @@ from .tag import Tag
 
 if TYPE_CHECKING:
     from .estimate import Estimate
+    from .project import Project
     from .user import User
 
 
@@ -72,6 +73,7 @@ class Task(DBType, strawberry.relay.Node):
     created_at: datetime | None = map_to_db()
     order_id: int | None = map_to_db()
     attached: bool = map_to_db()
+    project: Annotated["Project", strawberry.lazy(".project")] = map_to_db("project")
 
     @strawberry.field()
     def active(self) -> bool:

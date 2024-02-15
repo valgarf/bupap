@@ -32,7 +32,7 @@ import { DateTime } from 'luxon'
 const route = useRoute();
 const TASK_ACTIVITY_QUERY = graphql(`
     query getTaskActivity($dbId: Int!) {
-        dbNode(typename: "Task", dbId: $dbId) {
+        task: dbNode(typename: "Task", dbId: $dbId) {
             ... on Task {
                 activity {
                     __typename
@@ -67,11 +67,7 @@ const { result, loading, error } = useQuery(TASK_ACTIVITY_QUERY, {
     dbId: parseInt(route.params.id as string),
 });
 
-const taskActivity = computed(() => result.value?.dbNode?.activity ?? []);
-
-watchEffect(() => {
-    console.log(taskActivity.value)
-})
+const taskActivity = computed(() => result.value?.task?.activity ?? []);
 
 const getDotColor = (event) => {
     // Implement your logic to determine the dot color based on the activity
