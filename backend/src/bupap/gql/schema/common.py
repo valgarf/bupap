@@ -1,35 +1,51 @@
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, NewType
+from typing import NewType
 
 import strawberry
 
-from bupap import db
 from bupap.common import toUTC
 
-from ..common.db_type import DBType, map_to_db
 
+def serialize_timedelta(td: timedelta) -> str:
+    """
+    Convert a timedelta object to a string in the format "HH:MM:SS[.sss]".
 
-def serialize_timedelta(td: timedelta):
+    Milliseconds are omitted if they are 0.
+
+    :param td: The timedelta object to serialize.
+    :returns: A string representation of the timedelta object.
+    """
     s = td.total_seconds()
-    m, s = s // 60, s % 60
-    h, m = m // 60, m % 60
-    return f"{h:02.0f}:{m:02.0f}:{s:02.4f}"
+    m, s = divmod(s, 60)
+    h, m = divmod(m, 60)
+    result = f"{int(h):02}:{int(m):02}:{s:06.3f}"
+    if result.endswith(".000"):
+        result = result[:-4]
+    return result
 
 
-def deserialize_timedelta(v: str):
-    h, m, s = (v.split(":") + [0, 0, 0])[:3]
+def deserialize_timedelta(v: str) -> timedelta:
+    """
+    Deserialize a string representing a duration into a timedelta object.
+
+    :param v: The string in the format "HH[:MM[:SS[.sss]]]".
+    """
+    h, m, s = [*v.split(":"), 0, 0, 0][:3]
     return timedelta(hours=int(h), minutes=int(m), seconds=float(s))
 
 
 Timedelta = strawberry.scalar(
-    NewType("Base64", timedelta),
+    NewType("Duration", timedelta),
     serialize=serialize_timedelta,
     parse_value=deserialize_timedelta,
+    description="Duration in format HH:MM:SS[.sss]",
 )
 
 
 @strawberry.type
 class Period:
+    """Timeperiod with `start` and `end` timestamp."""
+
     start: datetime
     end: datetime
 

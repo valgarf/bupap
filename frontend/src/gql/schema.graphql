@@ -66,19 +66,20 @@ type AvatarPart {
   svg: String
 }
 
-scalar Base64
-
 """Date with time (isoformat)"""
 scalar DateTime
+
+"""Duration in format HH:MM:SS[.sss]"""
+scalar Duration
 
 type Estimate implements Node {
   createdAt: DateTime!
   dbId: Int!
   estimateType: EstimateType!
-  estimatedDuration: Base64!
-  expectationAverage: Base64!
-  expectationOptimistic: Base64!
-  expectationPessimistic: Base64!
+  estimatedDuration: Duration!
+  expectationAverage: Duration!
+  expectationOptimistic: Duration!
+  expectationPessimistic: Duration!
 
   """The Globally Unique ID of this object"""
   id: GlobalID!
@@ -87,7 +88,7 @@ type Estimate implements Node {
 }
 
 type EstimateDatapoint {
-  actualWork: Base64!
+  actualWork: Duration!
   end: DateTime!
   estimate: Estimate!
   numWorkPeriods: Int!
@@ -248,7 +249,6 @@ type Tag {
 }
 
 type Task implements Node {
-  active: Boolean!
   activity: [TaskActivity!]!
   attached: Boolean!
   children: [Task!]!
@@ -265,9 +265,11 @@ type Task implements Node {
   priority: TaskPriority!
   progress: TaskProgress!
   project: Project!
+  schedule: TaskSchedule
   state: TaskState!
   tags: [Tag!]!
   type: TaskType!
+  workPeriods: [WorkPeriodTask!]!
 }
 
 interface TaskActivity {
@@ -289,7 +291,7 @@ type TaskActivityFinished implements TaskActivity {
 }
 
 type TaskActivityWorkperiod implements TaskActivity {
-  duration: Base64
+  duration: Duration
   timestamp: DateTime!
   user: User!
 }
@@ -307,6 +309,13 @@ type TaskProgress {
   average: Int!
   optimistic: Int!
   pessimistic: Int!
+}
+
+type TaskSchedule {
+  assignee: User!
+  average: Period!
+  optimistic: Period!
+  pessimistic: Period!
 }
 
 enum TaskState {
@@ -369,5 +378,21 @@ type UserProjectSummary {
   numTasksDone: Int!
   numTasksOpen: Int!
   project: Project!
-  totalDuration: Base64!
+  totalDuration: Duration!
+}
+
+interface WorkPeriod {
+  endedAt: DateTime
+  startedAt: DateTime!
+  user: User!
+}
+
+type WorkPeriodTask implements Node & WorkPeriod {
+  endedAt: DateTime
+
+  """The Globally Unique ID of this object"""
+  id: GlobalID!
+  startedAt: DateTime!
+  task: Task!
+  user: User!
 }

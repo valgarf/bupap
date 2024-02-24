@@ -1,17 +1,29 @@
+"""GraphQL schema for a Task."""
+
+# future
+from __future__ import annotations
+
+# stl
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Annotated, Self
 
+# third-party
 import strawberry
 
+# first-party
 from bupap import db
+from bupap.common.enums import TaskPriority, TaskState, TaskType  # noqa: TCH001
+from bupap.gql.common.db_type import DBConvExtension, DBType, map_to_db
 from bupap.ui.crud.task import get_estimate
 
-from ...common.enums import TaskPriority, TaskState, TaskType
-from ..common.db_type import DBConvExtension, DBType, map_to_db
-from .common import Timedelta
-from .tag import Tag
+# local
+from .common import Period, Timedelta
+from .tag import Tag  # noqa: TCH001
 
 if TYPE_CHECKING:
+    # first-party
+
+    # local
     from .estimate import Estimate
     from .project import Project
     from .user import User
@@ -19,47 +31,96 @@ if TYPE_CHECKING:
 
 @strawberry.interface
 class TaskActivity:
+    """Interface of a single activity for a task."""
+
     timestamp: datetime
 
 
 @strawberry.type
 class TaskActivityCreated(TaskActivity):
-    pass
+    """The creation of the task."""
 
 
 @strawberry.type
 class TaskActivityFinished(TaskActivity):
-    pass
+    """The completion of the task."""
 
 
 @strawberry.type
 class TaskActivityWorkperiod(TaskActivity):
+    """A work period for a task with an optional duration (if finished) and associated user."""
+
     duration: Timedelta | None
-    user: Annotated["User", strawberry.lazy(".user")] = strawberry.field(
+    user: Annotated[User, strawberry.lazy(".user")] = strawberry.field(
         extensions=[DBConvExtension()]
     )
 
 
 @strawberry.type
 class TaskActivityEstimateAdded(TaskActivity):
-    estimate: Annotated["Estimate", strawberry.lazy(".estimate")] = strawberry.field(
+    """The addition of an estimate with the associated estimate and user."""
+
+    estimate: Annotated[Estimate, strawberry.lazy(".estimate")] = strawberry.field(
         extensions=[DBConvExtension()]
     )
-    user: Annotated["User", strawberry.lazy(".user")] = strawberry.field(
+    user: Annotated[User, strawberry.lazy(".user")] = strawberry.field(
         extensions=[DBConvExtension()]
     )
 
 
 @strawberry.type
 class TaskProgress:
+    """The progress of a task with different levels of estimation."""
+
     active: bool
     pessimistic: int
     average: int
     optimistic: int
 
 
+@strawberry.interface
+class WorkPeriod(DBType):
+    _db_table = db.WorkPeriod
+    """A time period a user worked. Subclasses define the work type."""
+
+    user: Annotated[User, strawberry.lazy(".user")] = map_to_db()
+    started_at: datetime = map_to_db()
+    ended_at: datetime | None = map_to_db()
+
+
+@strawberry.type
+class WorkPeriodTask(WorkPeriod, DBType, strawberry.relay.Node):
+    _db_table = db.WorkPeriodTask
+
+    task: Annotated[Task, strawberry.lazy(".task")] = map_to_db()
+
+
+@strawberry.type
+class WorkPeriodTimesink(WorkPeriod, DBType, strawberry.relay.Node):
+    _db_table = db.WorkPeriodTimesink
+
+
+@strawberry.type
+class WorkPeriodWorking(WorkPeriod, DBType, strawberry.relay.Node):
+    _db_table = db.WorkPeriodWorking
+
+
+@strawberry.type
+class TaskSchedule:
+    """Scheduled user and possible execution periods."""
+
+    optimistic: Period
+    average: Period
+    pessimistic: Period
+    assignee: Annotated[User, strawberry.lazy(".user")] = strawberry.field(
+        extensions=[DBConvExtension()]
+    )
+
+
 @strawberry.type
 class Task(DBType, strawberry.relay.Node):
+    """A single task to be estimated, scheduled and executed by a user / developer."""
+
     _db_table = db.Task
     db_id: int = map_to_db("id")
     name: str = map_to_db()
@@ -73,14 +134,35 @@ class Task(DBType, strawberry.relay.Node):
     created_at: datetime | None = map_to_db()
     order_id: int | None = map_to_db()
     attached: bool = map_to_db()
-    project: Annotated["Project", strawberry.lazy(".project")] = map_to_db("project")
+    project: Annotated[Project, strawberry.lazy(".project")] = map_to_db()
+    work_periods: list[WorkPeriodTask] = map_to_db()
 
     @strawberry.field()
-    def active(self) -> bool:
-        pass
+    def schedule(self) -> TaskSchedule | None:
+        """Retrieve the schedule of the task if available."""
+        db_obj: db.Task = self.db_obj
+        if (
+            db_obj.scheduled_assignee is None
+            or db_obj.scheduled_optimistic_start is None
+            or db_obj.scheduled_optimistic_end is None
+            or db_obj.scheduled_average_start is None
+            or db_obj.scheduled_average_end is None
+            or db_obj.scheduled_pessimistic_start is None
+            or db_obj.scheduled_pessimistic_end is None
+        ):
+            return None
+        return TaskSchedule(
+            pessimistic=Period(
+                db_obj.scheduled_pessimistic_start, db_obj.scheduled_pessimistic_end
+            ),
+            average=Period(db_obj.scheduled_average_start, db_obj.scheduled_average_end),
+            optimistic=Period(db_obj.scheduled_optimistic_start, db_obj.scheduled_optimistic_end),
+            assignee=db_obj.scheduled_assignee,
+        )
 
     @strawberry.field()
     def progress(self) -> TaskProgress:
+        """Calculate and returns the task progress based on work periods and estimates."""
         active = False
         progress = [0, 0, 0]
         db_obj: db.Task = self.db_obj
@@ -105,6 +187,7 @@ class Task(DBType, strawberry.relay.Node):
 
     @strawberry.field()
     def activity(self) -> list[TaskActivity]:
+        """Return a list of task activities, latest first."""
         db_obj: db.Task = self.db_obj
         result = []
         result.append(TaskActivityCreated(timestamp=db_obj.created_at))
@@ -141,5 +224,6 @@ class Task(DBType, strawberry.relay.Node):
 
     @strawberry.field()
     def tags() -> list[Tag]:
+        """Get the task's tags."""
         return []
-        # TODO
+        # TODO(Stefan): implement

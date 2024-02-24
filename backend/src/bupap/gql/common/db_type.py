@@ -1,34 +1,26 @@
+# future
 from __future__ import annotations
 
+# stl
 import dataclasses
 import inspect
 from functools import cached_property, lru_cache
-from types import UnionType
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Iterable,
-    Mapping,
-    Self,
-    Sequence,
-    Type,
-    Union,
-    get_args,
-    get_origin,
-)
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Self, Type
 
+# third-party
 import sqlalchemy as sa
 import strawberry
 from strawberry.enum import EnumDefinition
 from strawberry.extensions.field_extension import FieldExtension
 from strawberry.field import StrawberryField
 from strawberry.lazy_type import LazyType
-from strawberry.type import StrawberryList, StrawberryOptional
+from strawberry.type import StrawberryList, StrawberryOptional, get_object_definition
 
 if TYPE_CHECKING:
+    # third-party
     from strawberry.types import Info
 
+    # local
     from .context import InfoContext
 
 
@@ -40,7 +32,7 @@ def map_to_db(attr_name: str | None = None, **kwargs):
     # we do not directly create a resolver, attr_name might be empty. Instead the DBAttrExtension
     # will use the parsed field to get an attribute name (if none is given as input).
     def raise_resolve(root: DBType, info: Any):
-        raise NotImplementedError()
+        raise NotImplementedError
 
     kwargs["resolver"] = raise_resolve
 
@@ -87,15 +79,20 @@ class DBConvExtension(FieldExtension):
                 if not isinstance(result, (list, tuple)):
                     raise RuntimeError(f"Expected a list for field {self.field}. Value: {result}")
                 return [self.convert(type_.of_type, el) for el in result]
-            try:
-                if not isinstance(
-                    type_, (strawberry.custom_scalar.ScalarWrapper, EnumDefinition)
-                ) and issubclass(type_, DBType):
+            if not isinstance(
+                type_, (strawberry.custom_scalar.ScalarWrapper, EnumDefinition)
+            ) and issubclass(type_, DBType):
+                obj_def = get_object_definition(type_)
+                if obj_def.is_interface:
+                    assert isinstance(result, type_._db_table)
+                    for subclass in obj_def.__subclasses__:
+                        if isinstance(result, subclass._db_table):
+                            return self.convert(subclass, result)
+                else:
                     result = type_(result)
-            except BaseException as exc:
-                ic(exc, type_)
+
             return result
-        except Exception as exc:
+        except Exception:
             raise
 
     def resolve(self, next_: Callable[..., Any], source: Any, info: Info, **kwargs):

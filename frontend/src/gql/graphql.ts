@@ -14,9 +14,10 @@ export type Scalars = {
   Boolean: { input: boolean; output: boolean; }
   Int: { input: number; output: number; }
   Float: { input: number; output: number; }
-  Base64: { input: any; output: any; }
   /** Date with time (isoformat) */
   DateTime: { input: any; output: any; }
+  /** Duration in format HH:MM:SS[.sss] */
+  Duration: { input: any; output: any; }
   /** The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID. */
   GlobalID: { input: any; output: any; }
 };
@@ -102,10 +103,10 @@ export type Estimate = Node & {
   createdAt: Scalars['DateTime']['output'];
   dbId: Scalars['Int']['output'];
   estimateType: EstimateType;
-  estimatedDuration: Scalars['Base64']['output'];
-  expectationAverage: Scalars['Base64']['output'];
-  expectationOptimistic: Scalars['Base64']['output'];
-  expectationPessimistic: Scalars['Base64']['output'];
+  estimatedDuration: Scalars['Duration']['output'];
+  expectationAverage: Scalars['Duration']['output'];
+  expectationOptimistic: Scalars['Duration']['output'];
+  expectationPessimistic: Scalars['Duration']['output'];
   /** The Globally Unique ID of this object */
   id: Scalars['GlobalID']['output'];
   task: Task;
@@ -114,7 +115,7 @@ export type Estimate = Node & {
 
 export type EstimateDatapoint = {
   __typename?: 'EstimateDatapoint';
-  actualWork: Scalars['Base64']['output'];
+  actualWork: Scalars['Duration']['output'];
   end: Scalars['DateTime']['output'];
   estimate: Estimate;
   numWorkPeriods: Scalars['Int']['output'];
@@ -311,7 +312,6 @@ export type Tag = {
 
 export type Task = Node & {
   __typename?: 'Task';
-  active: Scalars['Boolean']['output'];
   activity: Array<TaskActivity>;
   attached: Scalars['Boolean']['output'];
   children: Array<Task>;
@@ -327,9 +327,11 @@ export type Task = Node & {
   priority: TaskPriority;
   progress: TaskProgress;
   project: Project;
+  schedule?: Maybe<TaskSchedule>;
   state: TaskState;
   tags: Array<Tag>;
   type: TaskType;
+  workPeriods: Array<WorkPeriodTask>;
 };
 
 export type TaskActivity = {
@@ -355,7 +357,7 @@ export type TaskActivityFinished = TaskActivity & {
 
 export type TaskActivityWorkperiod = TaskActivity & {
   __typename?: 'TaskActivityWorkperiod';
-  duration?: Maybe<Scalars['Base64']['output']>;
+  duration?: Maybe<Scalars['Duration']['output']>;
   timestamp: Scalars['DateTime']['output'];
   user: User;
 };
@@ -374,6 +376,14 @@ export type TaskProgress = {
   average: Scalars['Int']['output'];
   optimistic: Scalars['Int']['output'];
   pessimistic: Scalars['Int']['output'];
+};
+
+export type TaskSchedule = {
+  __typename?: 'TaskSchedule';
+  assignee: User;
+  average: Period;
+  optimistic: Period;
+  pessimistic: Period;
 };
 
 export enum TaskState {
@@ -450,7 +460,23 @@ export type UserProjectSummary = {
   numTasksDone: Scalars['Int']['output'];
   numTasksOpen: Scalars['Int']['output'];
   project: Project;
-  totalDuration: Scalars['Base64']['output'];
+  totalDuration: Scalars['Duration']['output'];
+};
+
+export type WorkPeriod = {
+  endedAt?: Maybe<Scalars['DateTime']['output']>;
+  startedAt: Scalars['DateTime']['output'];
+  user: User;
+};
+
+export type WorkPeriodTask = Node & WorkPeriod & {
+  __typename?: 'WorkPeriodTask';
+  endedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** The Globally Unique ID of this object */
+  id: Scalars['GlobalID']['output'];
+  startedAt: Scalars['DateTime']['output'];
+  task: Task;
+  user: User;
 };
 
 export type RenderedAvatarQueryVariables = Exact<{
@@ -519,7 +545,7 @@ export type GetProjectBoardQueryVariables = Exact<{
 }>;
 
 
-export type GetProjectBoardQuery = { __typename?: 'Query', project?: { __typename: 'AssignedTeamRole' } | { __typename: 'Estimate' } | { __typename: 'EstimateStatistics' } | { __typename: 'EstimateType' } | { __typename: 'Project', id: any, name: string, tasks: Array<{ __typename?: 'Task', id: any, dbId: number, name: string, state: TaskState, finishedAt?: any | null, orderId?: number | null, attached: boolean, priority: TaskPriority, parent?: { __typename?: 'Task', dbId: number } | null, tags: Array<{ __typename?: 'Tag', text: string, color: string }>, progress: { __typename?: 'TaskProgress', pessimistic: number, average: number, optimistic: number, active: boolean } }>, priorities: Array<{ __typename?: 'Tag', key?: string | null, text: string, color: string }> } | { __typename: 'Role' } | { __typename: 'Task' } | { __typename: 'Team' } | { __typename: 'User' } | null };
+export type GetProjectBoardQuery = { __typename?: 'Query', project?: { __typename: 'AssignedTeamRole' } | { __typename: 'Estimate' } | { __typename: 'EstimateStatistics' } | { __typename: 'EstimateType' } | { __typename: 'Project', id: any, name: string, tasks: Array<{ __typename?: 'Task', id: any, dbId: number, name: string, state: TaskState, finishedAt?: any | null, orderId?: number | null, attached: boolean, priority: TaskPriority, parent?: { __typename?: 'Task', dbId: number } | null, tags: Array<{ __typename?: 'Tag', text: string, color: string }>, progress: { __typename?: 'TaskProgress', pessimistic: number, average: number, optimistic: number, active: boolean } }>, priorities: Array<{ __typename?: 'Tag', key?: string | null, text: string, color: string }> } | { __typename: 'Role' } | { __typename: 'Task' } | { __typename: 'Team' } | { __typename: 'User' } | { __typename: 'WorkPeriodTask' } | null };
 
 export type MoveTasksMutationVariables = Exact<{
   projectDbId: Scalars['Int']['input'];
@@ -535,35 +561,35 @@ export type GetProjectQueryVariables = Exact<{
 }>;
 
 
-export type GetProjectQuery = { __typename?: 'Query', project?: { __typename?: 'AssignedTeamRole' } | { __typename?: 'Estimate' } | { __typename?: 'EstimateStatistics' } | { __typename?: 'EstimateType' } | { __typename?: 'Project', name: string, children: Array<{ __typename?: 'Project', dbId: number, name: string, parent?: { __typename?: 'Project', dbId: number } | null }>, parents: Array<{ __typename?: 'Project', dbId: number, name: string }> } | { __typename?: 'Role' } | { __typename?: 'Task' } | { __typename?: 'Team' } | { __typename?: 'User' } | null };
+export type GetProjectQuery = { __typename?: 'Query', project?: { __typename?: 'AssignedTeamRole' } | { __typename?: 'Estimate' } | { __typename?: 'EstimateStatistics' } | { __typename?: 'EstimateType' } | { __typename?: 'Project', name: string, children: Array<{ __typename?: 'Project', dbId: number, name: string, parent?: { __typename?: 'Project', dbId: number } | null }>, parents: Array<{ __typename?: 'Project', dbId: number, name: string }> } | { __typename?: 'Role' } | { __typename?: 'Task' } | { __typename?: 'Team' } | { __typename?: 'User' } | { __typename?: 'WorkPeriodTask' } | null };
 
 export type GetTaskActivityQueryVariables = Exact<{
   dbId: Scalars['Int']['input'];
 }>;
 
 
-export type GetTaskActivityQuery = { __typename?: 'Query', task?: { __typename?: 'AssignedTeamRole' } | { __typename?: 'Estimate' } | { __typename?: 'EstimateStatistics' } | { __typename?: 'EstimateType' } | { __typename?: 'Project' } | { __typename?: 'Role' } | { __typename?: 'Task', activity: Array<{ __typename: 'TaskActivityCreated', timestamp: any } | { __typename: 'TaskActivityEstimateAdded', timestamp: any, estimate: { __typename?: 'Estimate', estimatedDuration: any, expectationOptimistic: any, expectationPessimistic: any, expectationAverage: any, estimateType: { __typename?: 'EstimateType', name: string } }, user: { __typename?: 'User', name: string, fullName: string } } | { __typename: 'TaskActivityFinished', timestamp: any } | { __typename: 'TaskActivityWorkperiod', duration?: any | null, timestamp: any, user: { __typename?: 'User', name: string, fullName: string } }> } | { __typename?: 'Team' } | { __typename?: 'User' } | null };
+export type GetTaskActivityQuery = { __typename?: 'Query', task?: { __typename?: 'AssignedTeamRole' } | { __typename?: 'Estimate' } | { __typename?: 'EstimateStatistics' } | { __typename?: 'EstimateType' } | { __typename?: 'Project' } | { __typename?: 'Role' } | { __typename?: 'Task', activity: Array<{ __typename: 'TaskActivityCreated', timestamp: any } | { __typename: 'TaskActivityEstimateAdded', timestamp: any, estimate: { __typename?: 'Estimate', estimatedDuration: any, expectationOptimistic: any, expectationPessimistic: any, expectationAverage: any, estimateType: { __typename?: 'EstimateType', name: string } }, user: { __typename?: 'User', name: string, fullName: string } } | { __typename: 'TaskActivityFinished', timestamp: any } | { __typename: 'TaskActivityWorkperiod', duration?: any | null, timestamp: any, user: { __typename?: 'User', name: string, fullName: string } }> } | { __typename?: 'Team' } | { __typename?: 'User' } | { __typename?: 'WorkPeriodTask' } | null };
 
 export type GetTaskOverviewQueryVariables = Exact<{
   dbId: Scalars['Int']['input'];
 }>;
 
 
-export type GetTaskOverviewQuery = { __typename?: 'Query', task?: { __typename: 'AssignedTeamRole' } | { __typename: 'Estimate' } | { __typename: 'EstimateStatistics' } | { __typename: 'EstimateType' } | { __typename: 'Project' } | { __typename: 'Role' } | { __typename: 'Task', name: string, description: string, state: TaskState, priority: TaskPriority, type: TaskType, project: { __typename?: 'Project', priorities: Array<{ __typename?: 'Tag', key?: string | null, text: string, color: string }>, taskStates: Array<{ __typename?: 'Tag', key?: string | null, text: string, color: string }>, taskTypes: Array<{ __typename?: 'Tag', key?: string | null, text: string, color: string }> }, tags: Array<{ __typename?: 'Tag', text: string, color: string }> } | { __typename: 'Team' } | { __typename: 'User' } | null };
+export type GetTaskOverviewQuery = { __typename?: 'Query', task?: { __typename: 'AssignedTeamRole' } | { __typename: 'Estimate' } | { __typename: 'EstimateStatistics' } | { __typename: 'EstimateType' } | { __typename: 'Project' } | { __typename: 'Role' } | { __typename: 'Task', name: string, description: string, state: TaskState, priority: TaskPriority, type: TaskType, project: { __typename?: 'Project', priorities: Array<{ __typename?: 'Tag', key?: string | null, text: string, color: string }>, taskStates: Array<{ __typename?: 'Tag', key?: string | null, text: string, color: string }>, taskTypes: Array<{ __typename?: 'Tag', key?: string | null, text: string, color: string }> }, tags: Array<{ __typename?: 'Tag', text: string, color: string }> } | { __typename: 'Team' } | { __typename: 'User' } | { __typename: 'WorkPeriodTask' } | null };
 
 export type GetTeamQueryVariables = Exact<{
   dbId: Scalars['Int']['input'];
 }>;
 
 
-export type GetTeamQuery = { __typename?: 'Query', team?: { __typename?: 'AssignedTeamRole' } | { __typename?: 'Estimate' } | { __typename?: 'EstimateStatistics' } | { __typename?: 'EstimateType' } | { __typename?: 'Project' } | { __typename?: 'Role' } | { __typename?: 'Task' } | { __typename?: 'Team', name: string, dbId: number, assignedRoles: Array<{ __typename?: 'AssignedTeamRole', role: { __typename?: 'Role', dbId: number, name: string }, user: { __typename?: 'User', dbId: number, name: string, fullName: string, renderedAvatar: string } }> } | { __typename?: 'User' } | null };
+export type GetTeamQuery = { __typename?: 'Query', team?: { __typename?: 'AssignedTeamRole' } | { __typename?: 'Estimate' } | { __typename?: 'EstimateStatistics' } | { __typename?: 'EstimateType' } | { __typename?: 'Project' } | { __typename?: 'Role' } | { __typename?: 'Task' } | { __typename?: 'Team', name: string, dbId: number, assignedRoles: Array<{ __typename?: 'AssignedTeamRole', role: { __typename?: 'Role', dbId: number, name: string }, user: { __typename?: 'User', dbId: number, name: string, fullName: string, renderedAvatar: string } }> } | { __typename?: 'User' } | { __typename?: 'WorkPeriodTask' } | null };
 
 export type GetTeamNamesQueryVariables = Exact<{
   dbId: Scalars['Int']['input'];
 }>;
 
 
-export type GetTeamNamesQuery = { __typename?: 'Query', dbNode?: { __typename?: 'AssignedTeamRole' } | { __typename?: 'Estimate' } | { __typename?: 'EstimateStatistics' } | { __typename?: 'EstimateType' } | { __typename?: 'Project' } | { __typename?: 'Role' } | { __typename?: 'Task' } | { __typename?: 'Team', name: string } | { __typename?: 'User' } | null };
+export type GetTeamNamesQuery = { __typename?: 'Query', dbNode?: { __typename?: 'AssignedTeamRole' } | { __typename?: 'Estimate' } | { __typename?: 'EstimateStatistics' } | { __typename?: 'EstimateType' } | { __typename?: 'Project' } | { __typename?: 'Role' } | { __typename?: 'Task' } | { __typename?: 'Team', name: string } | { __typename?: 'User' } | { __typename?: 'WorkPeriodTask' } | null };
 
 export type ScheduleQueryVariables = Exact<{
   start: Scalars['DateTime']['input'];
@@ -573,28 +599,28 @@ export type ScheduleQueryVariables = Exact<{
 }>;
 
 
-export type ScheduleQuery = { __typename?: 'Query', team?: { __typename: 'AssignedTeamRole' } | { __typename: 'Estimate' } | { __typename: 'EstimateStatistics' } | { __typename: 'EstimateType' } | { __typename: 'Project' } | { __typename: 'Role' } | { __typename: 'Task' } | { __typename: 'Team', id: any, dbId: number, name: string, schedule: { __typename?: 'Schedule', now: any, covers: { __typename?: 'Period', start: any, end: any }, actual: { __typename?: 'Period', start: any, end: any }, userSchedules: Array<{ __typename?: 'ScheduleUser', user: { __typename?: 'User', fullName: string }, workingPeriods: Array<{ __typename?: 'Period', start: any, end: any }>, timesinks: Array<{ __typename?: 'SchedulePeriod', color: string, text: string, period: { __typename?: 'Period', start: any, end: any } }>, workedTasks: Array<{ __typename?: 'SchedulePeriod', color: string, text: string, period: { __typename?: 'Period', start: any, end: any } }>, scheduledTasks: Array<{ __typename?: 'SchedulePeriod', color: string, text: string, period: { __typename?: 'Period', start: any, end: any } }> }> } } | { __typename: 'User' } | null };
+export type ScheduleQuery = { __typename?: 'Query', team?: { __typename: 'AssignedTeamRole' } | { __typename: 'Estimate' } | { __typename: 'EstimateStatistics' } | { __typename: 'EstimateType' } | { __typename: 'Project' } | { __typename: 'Role' } | { __typename: 'Task' } | { __typename: 'Team', id: any, dbId: number, name: string, schedule: { __typename?: 'Schedule', now: any, covers: { __typename?: 'Period', start: any, end: any }, actual: { __typename?: 'Period', start: any, end: any }, userSchedules: Array<{ __typename?: 'ScheduleUser', user: { __typename?: 'User', fullName: string }, workingPeriods: Array<{ __typename?: 'Period', start: any, end: any }>, timesinks: Array<{ __typename?: 'SchedulePeriod', color: string, text: string, period: { __typename?: 'Period', start: any, end: any } }>, workedTasks: Array<{ __typename?: 'SchedulePeriod', color: string, text: string, period: { __typename?: 'Period', start: any, end: any } }>, scheduledTasks: Array<{ __typename?: 'SchedulePeriod', color: string, text: string, period: { __typename?: 'Period', start: any, end: any } }> }> } } | { __typename: 'User' } | { __typename: 'WorkPeriodTask' } | null };
 
 export type GetUserActivityQueryVariables = Exact<{
   dbId: Scalars['Int']['input'];
 }>;
 
 
-export type GetUserActivityQuery = { __typename?: 'Query', user?: { __typename?: 'AssignedTeamRole' } | { __typename?: 'Estimate' } | { __typename?: 'EstimateStatistics' } | { __typename?: 'EstimateType' } | { __typename?: 'Project' } | { __typename?: 'Role' } | { __typename?: 'Task' } | { __typename?: 'Team' } | { __typename?: 'User', activity: Array<{ __typename?: 'UserActivity', at: any, short: string, details: string }> } | null };
+export type GetUserActivityQuery = { __typename?: 'Query', user?: { __typename?: 'AssignedTeamRole' } | { __typename?: 'Estimate' } | { __typename?: 'EstimateStatistics' } | { __typename?: 'EstimateType' } | { __typename?: 'Project' } | { __typename?: 'Role' } | { __typename?: 'Task' } | { __typename?: 'Team' } | { __typename?: 'User', activity: Array<{ __typename?: 'UserActivity', at: any, short: string, details: string }> } | { __typename?: 'WorkPeriodTask' } | null };
 
 export type GetUserQueryVariables = Exact<{
   dbId: Scalars['Int']['input'];
 }>;
 
 
-export type GetUserQuery = { __typename?: 'Query', user?: { __typename?: 'AssignedTeamRole' } | { __typename?: 'Estimate' } | { __typename?: 'EstimateStatistics' } | { __typename?: 'EstimateType' } | { __typename?: 'Project' } | { __typename?: 'Role' } | { __typename?: 'Task' } | { __typename?: 'Team' } | { __typename?: 'User', name: string, fullName: string, renderedAvatar: string, projectSummaries: Array<{ __typename?: 'UserProjectSummary', totalDuration: any, numTasksOpen: number, numTasksDone: number, project: { __typename?: 'Project', id: any, dbId: number, name: string } }>, estimateStatistics: Array<{ __typename?: 'EstimateStatistics', evaluated: any, numDatapoints: number, shiftOptimistic: number, shiftAverage: number, shiftPessimistic: number, sufficient: boolean, estimateType: { __typename?: 'EstimateType', name: string, description: string, minDatapoints: number, maxDatapoints: number, relative: boolean }, datapoints: Array<{ __typename?: 'EstimateDatapoint', value: number, actualWork: any, numWorkPeriods: number, start: any, end: any, estimate: { __typename?: 'Estimate', dbId: number, estimatedDuration: any, task: { __typename?: 'Task', dbId: number, name: string } } }> }> } | null };
+export type GetUserQuery = { __typename?: 'Query', user?: { __typename?: 'AssignedTeamRole' } | { __typename?: 'Estimate' } | { __typename?: 'EstimateStatistics' } | { __typename?: 'EstimateType' } | { __typename?: 'Project' } | { __typename?: 'Role' } | { __typename?: 'Task' } | { __typename?: 'Team' } | { __typename?: 'User', name: string, fullName: string, renderedAvatar: string, projectSummaries: Array<{ __typename?: 'UserProjectSummary', totalDuration: any, numTasksOpen: number, numTasksDone: number, project: { __typename?: 'Project', id: any, dbId: number, name: string } }>, estimateStatistics: Array<{ __typename?: 'EstimateStatistics', evaluated: any, numDatapoints: number, shiftOptimistic: number, shiftAverage: number, shiftPessimistic: number, sufficient: boolean, estimateType: { __typename?: 'EstimateType', name: string, description: string, minDatapoints: number, maxDatapoints: number, relative: boolean }, datapoints: Array<{ __typename?: 'EstimateDatapoint', value: number, actualWork: any, numWorkPeriods: number, start: any, end: any, estimate: { __typename?: 'Estimate', dbId: number, estimatedDuration: any, task: { __typename?: 'Task', dbId: number, name: string } } }> }> } | { __typename?: 'WorkPeriodTask' } | null };
 
 export type UserQueryVariables = Exact<{
   userId: Scalars['Int']['input'];
 }>;
 
 
-export type UserQuery = { __typename?: 'Query', user?: { __typename?: 'AssignedTeamRole' } | { __typename?: 'Estimate' } | { __typename?: 'EstimateStatistics' } | { __typename?: 'EstimateType' } | { __typename?: 'Project' } | { __typename?: 'Role' } | { __typename?: 'Task' } | { __typename?: 'Team' } | { __typename?: 'User', name: string, fullName: string, avatar: { __typename?: 'Avatar', skinColor: string, hairColor: string, beardColor: string, hatColor: string, clothingColor: string, backgroundColor: string, shirtText: string, top: { __typename?: 'AvatarPart', name: string }, accessory: { __typename?: 'AvatarPart', name: string }, eyebrows: { __typename?: 'AvatarPart', name: string }, eyes: { __typename?: 'AvatarPart', name: string }, nose: { __typename?: 'AvatarPart', name: string }, mouth: { __typename?: 'AvatarPart', name: string }, beard: { __typename?: 'AvatarPart', name: string }, clothing: { __typename?: 'AvatarPart', name: string }, graphic: { __typename?: 'AvatarPart', name: string } } } | null };
+export type UserQuery = { __typename?: 'Query', user?: { __typename?: 'AssignedTeamRole' } | { __typename?: 'Estimate' } | { __typename?: 'EstimateStatistics' } | { __typename?: 'EstimateType' } | { __typename?: 'Project' } | { __typename?: 'Role' } | { __typename?: 'Task' } | { __typename?: 'Team' } | { __typename?: 'User', name: string, fullName: string, avatar: { __typename?: 'Avatar', skinColor: string, hairColor: string, beardColor: string, hatColor: string, clothingColor: string, backgroundColor: string, shirtText: string, top: { __typename?: 'AvatarPart', name: string }, accessory: { __typename?: 'AvatarPart', name: string }, eyebrows: { __typename?: 'AvatarPart', name: string }, eyes: { __typename?: 'AvatarPart', name: string }, nose: { __typename?: 'AvatarPart', name: string }, mouth: { __typename?: 'AvatarPart', name: string }, beard: { __typename?: 'AvatarPart', name: string }, clothing: { __typename?: 'AvatarPart', name: string }, graphic: { __typename?: 'AvatarPart', name: string } } } | { __typename?: 'WorkPeriodTask' } | null };
 
 export type SaveUserMutationVariables = Exact<{
   userId: Scalars['Int']['input'];

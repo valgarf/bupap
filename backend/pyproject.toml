@@ -50,7 +50,24 @@ line_length = 100
 float_to_top = true
 src_paths = ["src", "test", "alembic"]
 sections = ['FUTURE', 'STDLIB', 'THIRDPARTY', 'FIRSTPARTY', 'LOCALFOLDER']
-import_headings = {FUTURE="future", STDLIB="stl", THIRDPARTY="third-party", FIRSTPARTY="first-party", LOCALFOLDER="local"}
+import_heading_future ="future"
+import_heading_stdlib="stl"
+import_heading_thirdparty="third-party"
+import_heading_firstparty="first-party"
+import_heading_localfolder="local"
 
 [tool.black]
 line-length = 100
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["F", "E", "W", "C90", "N", "D", "UP", "ANN", "TRIO", "S", "BLE", "FBT", "B", "A", "C4","EM", "FA", "ISC", "INP", "PIE", "PT", "Q", "RSE", "RET", "SLF", "SLOT", "SIM", "TID", "TCH", "TD", "FIX", "PL", "RUF"]
+# S101: asserts are a useful tool, leave me alone
+# D212 / D213: mutually exclusive
+# ANN101: No, self should not be annotated
+# ANN204: No, __init__ does not need a return type
+# D107: No, I will not document __init__ methods. What do you expect them to do?
+# TD003: there will not be an issue for every todo in the code
+ignore=["S101", "D212", "ANN101", "ANN204", "D107", "TD003"]
