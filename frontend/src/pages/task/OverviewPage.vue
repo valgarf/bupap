@@ -14,17 +14,23 @@
                 <td class="q-py-xs">
                     <user-card :user="user"></user-card>
                 </td>
-                <td class="q-pl-md">
-                    <p v-if="user.endAverage != null">Estimated end: {{ formatDatetimeDate(user.endOptimistic) }} - {{
-                        formatDatetimeDate(user.endPessimistic) }}
+                <td class="q-pl-md text-body2">
+                    <div v-if="user.endAverage != null" class="text-weight-bold">Estimated end: {{
+                        formatDatetimeDate(user.endOptimistic) }} - {{
+        formatDatetimeDate(user.endPessimistic) }}
                         (expected: {{ formatDatetimeDate(user.endAverage) }})
-                    </p>
-                    <p>Worked Duration: {{ user.workedDuration.toFormat('hh:mm') }}</p>
+                    </div>
+                    <div v-if="user.estimateName != null">{{ user.estimateName }} estimate: {{
+                        user.expectationOptimistic?.toFormat('hh:mm') }} - {{
+        user.expectationPessimistic?.toFormat('hh:mm') }}
+                        (expected: {{ user.expectationAverage?.toFormat('hh:mm') }})
+                    </div>
+                    <div>Worked Duration: {{ user.workedDuration.toFormat('hh:mm') }}</div>
                 </td>
             </tr>
         </table>
         <div v-if="task != null" class="q-mt-md self-stretch row justify-center description-outer">
-            <div class="rounded-borders q-pa-sm self-stretch description-inner">{{
+            <div class="rounded-borders q-pa-sm self-stretch description-inner text-body2">{{
                 task.description }}
             </div>
         </div>
@@ -53,10 +59,15 @@ interface UserData {
     avatar: Avatar;
     idx: number;
     workedDuration: Duration
-    endOptimistic: DateTime
-    endAverage: DateTime
-    endPessimistic: DateTime
-    renderedAvatar: string
+    endOptimistic?: DateTime
+    endAverage?: DateTime
+    endPessimistic?: DateTime
+    renderedAvatar?: string
+    estimatedDuration?: Duration
+    expectationAverage?: Duration
+    expectationOptimistic?: Duration
+    expectationPessimistic?: Duration
+    estimateName?: string
 }
 interface UsersDict {
     [key: string]: UserData;
@@ -139,6 +150,19 @@ const TASK_OVERVIEW_QUERY = graphql(`
                         end
                     }
                 }
+                estimates {
+                    user {
+                        id
+                        name
+                        fullName
+                        avatar {svg}
+                    }
+                    estimatedDuration
+                    expectationAverage
+                    expectationOptimistic
+                    expectationPessimistic
+                    estimateType {name}
+                }
             }
         }
     }
@@ -182,22 +206,36 @@ const timesheet = computed(() => {
         return []
     }
     const usersDict: UsersDict = {}
+    let idx = 0
     if (task.value.schedule != null) {
         let schedule = task.value?.schedule
         usersDict[schedule.assignee.id] = {
-            ...schedule.assignee, idx: 0, workedDuration: Duration.fromMillis(0),
+            ...schedule.assignee, idx: idx, workedDuration: Duration.fromMillis(0),
             endOptimistic: DateTime.fromISO(schedule.optimistic.end),
             endAverage: DateTime.fromISO(schedule.average.end),
             endPessimistic: DateTime.fromISO(schedule.pessimistic.end),
         }
+        idx++;
     }
     for (let wp of task.value.workPeriods) {
         if (wp.duration != null) {
             if (!(wp.user.id in usersDict)) {
-                usersDict[wp.user.id] = { ...wp.user, idx: usersDict.length, workedDuration: Duration.fromMillis(0) }
+                usersDict[wp.user.id] = { ...wp.user, idx: idx, workedDuration: Duration.fromMillis(0) }
+                idx++;
             }
             usersDict[wp.user.id].workedDuration = usersDict[wp.user.id].workedDuration.plus(parseTimedelta(wp.duration))
         }
+    }
+    for (let est of task.value.estimates) {
+        if (!(est.user.id in usersDict)) {
+            usersDict[est.user.id] = { ...est.user, idx: idx, workedDuration: Duration.fromMillis(0) }
+            idx++;
+        }
+        usersDict[est.user.id].estimatedDuration = parseTimedelta(est.estimatedDuration)
+        usersDict[est.user.id].expectationAverage = parseTimedelta(est.expectationAverage)
+        usersDict[est.user.id].expectationOptimistic = parseTimedelta(est.expectationOptimistic)
+        usersDict[est.user.id].expectationPessimistic = parseTimedelta(est.expectationPessimistic)
+        usersDict[est.user.id].estimateName = est.estimateType.name
     }
     for (let v of Object.values(usersDict)) {
         v.renderedAvatar = v.avatar.svg

@@ -255,6 +255,7 @@ type Task implements Node {
   createdAt: DateTime
   dbId: Int!
   description: String!
+  estimates: [Estimate!]!
   finishedAt: DateTime
 
   """The Globally Unique ID of this object"""

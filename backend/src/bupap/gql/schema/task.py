@@ -142,6 +142,7 @@ class Task(DBType, strawberry.relay.Node):
     attached: bool = map_to_db()
     project: Annotated[Project, strawberry.lazy(".project")] = map_to_db()
     work_periods: list[WorkPeriodTask] = map_to_db()
+    estimates: list[Annotated[Estimate, strawberry.lazy(".estimate")]] = map_to_db()
 
     @strawberry.field()
     def schedule(self) -> TaskSchedule | None:
