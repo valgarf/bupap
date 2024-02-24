@@ -382,12 +382,14 @@ type UserProjectSummary {
 }
 
 interface WorkPeriod {
+  duration: Duration
   endedAt: DateTime
   startedAt: DateTime!
   user: User!
 }
 
 type WorkPeriodTask implements Node & WorkPeriod {
+  duration: Duration
   endedAt: DateTime
 
   """The Globally Unique ID of this object"""

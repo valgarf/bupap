@@ -1,48 +1,23 @@
 <template>
   <q-scroll-area ref="scrollArea" class="fit col-grow">
-    <div
-      class="row q-pa-md no-wrap items-stretch q-gutter-md"
-      :style="scrollContentStyle"
-      @drop="drop"
-      @dragover.prevent="(evt) => {}"
-    >
-      <q-card
-        v-for="lane in kanban.laneOrder"
-        :key="lane.id"
-        class="items-stretch lane-card column"
-        @dragover.prevent="(evt) => dragover(lane, evt)"
-      >
+    <div class="row q-pa-md no-wrap items-stretch q-gutter-md" :style="scrollContentStyle" @drop="drop"
+      @dragover.prevent="(evt) => { }">
+      <q-card v-for="lane in kanban.laneOrder" :key="lane.id" class="items-stretch lane-card column"
+        @dragover.prevent="(evt) => dragover(lane, evt)">
         <div class="text-weight-bold text-h6 q-mt-md q-ml-md">
           {{ lane.title }}
         </div>
-        <q-scroll-area
-          class="q-ma-none q-pa-none q-pr-sm col-grow"
-          :visible="true"
-          :ref="
-              (r) => {
-                laneScrollAreas[lane.id] = r;
-              }
-            "
-        >
-          <div
-            class="q-pa-md"
-            :ref="
-              (r) => {
-                laneRefs[lane.id] = r;
-              }
-            "
-          >
-            <KanbanList
-              :parent-id="null"
-              :nodes="lane.topLevelNodes"
-              :depth="0"
-              :detached-parent="false"
-              :priorities="kanban.priorities"
-              @toggle-expand="toggleExpand"
-              @dragging-ref="draggingRef"
-              @dragstart-card="dragstartCard"
-              @open-link="openLink"
-            />
+        <q-scroll-area class="q-ma-none q-pa-none q-pr-sm col-grow" :visible="true" :ref="(r) => {
+            laneScrollAreas[lane.id] = r;
+          }
+          ">
+          <div class="q-pa-md" :ref="(r) => {
+              laneRefs[lane.id] = r;
+            }
+            ">
+            <KanbanList :parent-id="null" :nodes="lane.topLevelNodes" :depth="0" :detached-parent="false"
+              :priorities="kanban.priorities" @toggle-expand="toggleExpand" @dragging-ref="draggingRef"
+              @dragstart-card="dragstartCard" @open-link="openLink" />
           </div>
         </q-scroll-area>
       </q-card>
@@ -75,7 +50,7 @@ import {
   watchEffect,
   nextTick,
 } from 'vue';
-import {useElementSize} from '@vueuse/core'
+import { useElementSize } from '@vueuse/core'
 import { KanbanNode, KanbanLaneNode, KanbanProps, KanbanPropsData, Tag } from './interfaces';
 import { QScrollArea } from 'quasar';
 import { onMounted, onBeforeUnmount } from 'vue';
@@ -101,12 +76,12 @@ const dragged = ref({
   scrollRelativePos: null,
   scrollDirection: null,
   lastScrollDirection: null,
-  scrollSpeed:0,
+  scrollSpeed: 0,
   lastY: 0
 });
 
 const scrollArea = ref<QScrollArea | null>(null);
-const { height: scrollAreaHeight }=useElementSize(scrollArea)
+const { height: scrollAreaHeight } = useElementSize(scrollArea)
 const scrollContentStyle = computed(() => {
   if (scrollAreaHeight.value == 0) {
     return {};
@@ -139,7 +114,7 @@ function scrollingUpdate() {
     const lane: QScrollArea = laneScrollAreas[dragged.value.scrollLaneId];
     dragged.value.scrollSpeed = Math.min(1000 * dragged.value.scrollRelativePos, Math.max(50, dragged.value.scrollSpeed * (1 + dragged.value.scrollRelativePos)))
     const offset = dragged.value.scrollDirection == 'down' ? dragged.value.scrollSpeed : -dragged.value.scrollSpeed;
-    lane.setScrollPosition("vertical", lane.getScrollPosition().top + offset, 150)
+    lane.setScrollPosition('vertical', lane.getScrollPosition().top + offset, 150)
     dragged.value.lastScrollDirection = dragged.value.scrollDirection
   }
   else {
@@ -161,8 +136,8 @@ onBeforeUnmount(() => {
   timer.value = null;
 });
 
-function computeKanban(initialData: KanbanPropsData):KanbanState {
-  let nodes: {[key: number]: KanbanNode} = {};
+function computeKanban(initialData: KanbanPropsData): KanbanState {
+  let nodes: { [key: number]: KanbanNode } = {};
   for (let [k, v] of Object.entries(initialData.cards)) {
     let intk = parseInt(k);
     nodes[intk] = new KanbanNode(intk, v);
@@ -179,7 +154,7 @@ function computeKanban(initialData: KanbanPropsData):KanbanState {
   }
 
   let lanes: { [key: string]: KanbanLaneNode } = {};
-  
+
   for (let [k, v] of Object.entries(initialData.lanes)) {
     let allNodes = v.cardOrder.map((cid) => nodes[cid]);
 

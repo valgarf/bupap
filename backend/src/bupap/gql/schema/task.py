@@ -87,6 +87,12 @@ class WorkPeriod(DBType):
     started_at: datetime = map_to_db()
     ended_at: datetime | None = map_to_db()
 
+    @strawberry.field()
+    def duration(self) -> Timedelta | None:
+        if self.db_obj.ended_at is None:
+            return None
+        return self.db_obj.ended_at - self.db_obj.started_at
+
 
 @strawberry.type
 class WorkPeriodTask(WorkPeriod, DBType, strawberry.relay.Node):

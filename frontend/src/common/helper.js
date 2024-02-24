@@ -27,6 +27,10 @@ export function formatDatetimeMinutes(dt) {
     return `${s_date} ${s_time}`
 }
 
+export function formatDatetimeDate(dt) {
+    return dt.toISODate();
+}
+
 export function histogram(data) {
     // roughly https://en.wikipedia.org/wiki/Freedman%E2%80%93Diaconis_rule
     data.sort();
