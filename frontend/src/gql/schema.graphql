@@ -257,6 +257,7 @@ type Task implements Node {
   description: String!
   estimates: [Estimate!]!
   finishedAt: DateTime
+  history: [TaskHistory!]!
 
   """The Globally Unique ID of this object"""
   id: GlobalID!
@@ -295,6 +296,18 @@ type TaskActivityWorkperiod implements TaskActivity {
   duration: Duration
   timestamp: DateTime!
   user: User!
+}
+
+type TaskHistory implements Node {
+  assignee: User!
+  date: DateTime!
+
+  """The Globally Unique ID of this object"""
+  id: GlobalID!
+  scheduledAverageEnd: DateTime!
+  scheduledOptimisticEnd: DateTime!
+  scheduledPessimisticEnd: DateTime!
+  task: Task!
 }
 
 enum TaskPriority {

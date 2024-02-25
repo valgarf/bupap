@@ -1,40 +1,48 @@
 <template>
-    <q-page class="q-px-md q-pt-lg column" :style-fn="qPageStyleFnForTabsFixed">
-        <div v-if="task != null" class="self-center text-h6 text-weight-bold">
-            {{ task.name }}
-        </div>
-        <div v-if="tags.length > 0" class="row self-center q-gutter-sm">
-            <q-badge v-for="tag in tags" :key="tag.key + tag.text + tag.color" :color="tag.color"
-                :text-color="textColorFromBackground(tag.color)" class="select-none q-px-sm text-weight-bold text-body2">{{
-                    tag.text
-                }}</q-badge>
-        </div>
-        <table v-if="timesheet != null" class="self-center q-mt-md">
-            <tr v-for="user in timesheet" :key="user.id">
-                <td class="q-py-xs">
-                    <user-card :user="user"></user-card>
-                </td>
-                <td class="q-pl-md text-body2">
-                    <div v-if="user.endAverage != null" class="text-weight-bold">Estimated end: {{
-                        formatDatetimeDate(user.endOptimistic) }} - {{
+    <q-page class="q-px-md q-pt-lg" :style-fn="qPageStyleFnForTabsFixed">
+        <q-scroll-area style="height:100%; width:100%">
+            <div style="height:100%; width:100%" class="column">
+                <div v-if="task != null" class="self-center text-h6 text-weight-bold">
+                    {{ task.name }}
+                </div>
+                <div v-if="tags.length > 0" class="row self-center q-gutter-sm">
+                    <q-badge v-for="tag in tags" :key="tag.key + tag.text + tag.color" :color="tag.color"
+                        :text-color="textColorFromBackground(tag.color)"
+                        class="select-none q-px-sm text-weight-bold text-body2">{{
+                            tag.text
+                        }}</q-badge>
+                </div>
+                <table v-if="timesheet != null" class="self-center q-mt-md">
+                    <tr v-for="user in timesheet" :key="user.id">
+                        <td class="q-py-xs">
+                            <user-card :user="user"></user-card>
+                        </td>
+                        <td class="q-pl-md text-body2">
+                            <div v-if="user.endAverage != null" class="text-weight-bold">Estimated end: {{
+                                formatDatetimeDate(user.endOptimistic) }} - {{
         formatDatetimeDate(user.endPessimistic) }}
-                        (expected: {{ formatDatetimeDate(user.endAverage) }})
-                    </div>
-                    <div v-if="user.estimateName != null">{{ user.estimateName }} estimate: {{
-                        user.expectationOptimistic?.toFormat('hh:mm') }} - {{
+                                (expected: {{ formatDatetimeDate(user.endAverage) }})
+                            </div>
+                            <div v-if="user.estimateName != null">{{ user.estimateName }} estimate: {{
+                                user.expectationOptimistic?.toFormat('hh:mm') }} - {{
         user.expectationPessimistic?.toFormat('hh:mm') }}
-                        (expected: {{ user.expectationAverage?.toFormat('hh:mm') }})
+                                (expected: {{ user.expectationAverage?.toFormat('hh:mm') }})
+                            </div>
+                            <div>Worked Duration: {{ user.workedDuration.toFormat('hh:mm') }}</div>
+                        </td>
+                    </tr>
+                </table>
+                <div v-if="task != null" class="q-my-md self-stretch row justify-center description-outer">
+                    <div class="rounded-borders q-pa-sm self-stretch description-inner text-body2">{{
+                        task.description }}
                     </div>
-                    <div>Worked Duration: {{ user.workedDuration.toFormat('hh:mm') }}</div>
-                </td>
-            </tr>
-        </table>
-        <div v-if="task != null" class="q-mt-md self-stretch row justify-center description-outer">
-            <div class="rounded-borders q-pa-sm self-stretch description-inner text-body2">{{
-                task.description }}
+                </div>
+                <apexchart v-if="plot_data != null" height="300" type="rangeArea" :options="plot_data.options"
+                    :series="plot_data.series">
+                </apexchart>
+                <query-status :loading="loading" :error="error" />
             </div>
-        </div>
-        <query-status :loading="loading" :error="error" />
+        </q-scroll-area>
     </q-page>
 </template>
 
@@ -81,10 +89,12 @@ import QueryStatus from 'src/components/QueryStatus.vue';
 import { gql } from '@apollo/client/core';
 import { qPageStyleFnForTabsFixed } from 'src/common/helper';
 import { graphql } from 'src/gql'
-import { parseTimedelta, formatDatetimeDate, textColorFromBackground } from 'src/common/helper'
+import { parseTimedelta, formatDatetimeMinutes, formatDatetimeDate, textColorFromBackground } from 'src/common/helper'
 import { DateTime, Duration } from 'luxon'
 import UserCard from 'src/components/UserCard.vue'
 import { kMaxLength } from 'buffer';
+import Apexchart from 'vue3-apexcharts';
+
 // DateTime.fromISO(task.finishedAt).toISODate()
 //.toFormat('hh:mm')
 const route = useRoute();
@@ -98,6 +108,7 @@ const TASK_OVERVIEW_QUERY = graphql(`
                 state
                 priority
                 type
+                finishedAt
                 project {
                     priorities {
                         key
@@ -163,6 +174,12 @@ const TASK_OVERVIEW_QUERY = graphql(`
                     expectationPessimistic
                     estimateType {name}
                 }
+                history {
+                    date
+                    scheduledOptimisticEnd
+                    scheduledAverageEnd
+                    scheduledPessimisticEnd
+                }
             }
         }
     }
@@ -172,9 +189,119 @@ const { result, loading, error } = useQuery(TASK_OVERVIEW_QUERY, {
     dbId: parseInt(route.params.id as string),
 });
 
-
-
 const task = computed(() => result.value?.task);
+
+const plot_data = computed(() => {
+    const day_ms = 24 * 3600 * 100;
+    if (task.value == null || task.value.__typename != "Task" || task.value.history.length == 0) {
+        return null
+    }
+    const converted = task.value.history.map((el) => {
+        return {
+            date: DateTime.fromISO(el.date),
+            scheduledOptimisticEnd: DateTime.fromISO(el.scheduledOptimisticEnd),
+            scheduledAverageEnd: DateTime.fromISO(el.scheduledAverageEnd),
+            scheduledPessimisticEnd: DateTime.fromISO(el.scheduledPessimisticEnd),
+        }
+    })
+    let result = {}
+    result.options = {
+        title: {
+            text: 'History of estimated finished dates',
+            align: 'center',
+        },
+        chart: {
+            id: 'apex-history',
+            height: 350,
+            type: 'rangeArea',
+        },
+        colors: ['#33b2df', '#33b2df'],
+        dataLabels: {
+            enabled: false
+        },
+        stroke: {
+            curve: 'straight',
+            width: [0, 5]
+        },
+        // legend: {
+        //     show: false,
+        //     //   customLegendItems: ['Team B', 'Team A'],
+        //     //   inverseOrder: true
+        // },
+        // markers: {
+        //     hover: {
+        //         sizeOffset: 5
+        //     }
+        // },
+        xaxis: {
+            type: 'datetime',
+            // labels: {
+            //     formatter: (v, value) => {
+            //         console.log(v, value)
+            //         return formatDatetimeMinutes(DateTime.fromMillis(value))
+            //     }
+            // }
+        },
+        yaxis: {
+            labels: {
+                formatter: (value) => {
+                    return formatDatetimeMinutes(DateTime.fromMillis(value * day_ms))
+                }
+            }
+        },
+    }
+    result.series = [
+        {
+            type: 'rangeArea',
+            name: 'range',
+            data: converted.map((el) => {
+                return {
+                    x: el.date.toMillis(),
+                    y: [el.scheduledOptimisticEnd.toMillis() / day_ms, el.scheduledPessimisticEnd.toMillis() / day_ms]
+                }
+            })
+        },
+        {
+            type: 'line',
+            name: 'average',
+            data: converted.map((el) => {
+                return {
+                    x: el.date.toMillis(),
+                    y: el.scheduledAverageEnd.toMillis() / day_ms
+                }
+            })
+        },
+
+    ]
+    if (task.value.finishedAt != null) {
+        const dtFinished = DateTime.fromISO(task.value.finishedAt)
+        result.series[1].data.push({ x: dtFinished.toMillis(), y: dtFinished.toMillis() / day_ms })
+        result.series[0].data.push({ x: dtFinished.toMillis(), y: [dtFinished.toMillis() / day_ms, dtFinished.toMillis() / day_ms] })
+    }
+    const xmillis = result.series[1].data.map((el) => { return el.x })
+    const minx = Math.min(...xmillis)
+    const maxx = Math.max(...xmillis)
+    const offsetx = Math.max(0.1 * (maxx - minx), 12 * 3600 * 1000)
+    result.options.xaxis.min = minx - offsetx
+    result.options.xaxis.max = maxx + offsetx
+    result.options.xaxis.forceNiceScale = true
+    const min_ymillis = result.series[0].data.map((el) => { return el.y[0] })
+    const max_ymillis = result.series[0].data.map((el) => { return el.y[1] })
+    let miny = Math.min(...min_ymillis)
+    let maxy = Math.max(...max_ymillis)
+    const offsety = Math.max(0.1 * (maxy - miny), 0.5)
+    miny = (miny - offsety)
+    maxy = (maxy + offsety)
+    let round_factor = 0.25;
+    if (maxy - miny > 4) {
+        round_factor = 1
+    }
+    result.options.yaxis.min = Math.floor((miny - offsety) / round_factor) * round_factor
+    result.options.yaxis.max = Math.ceil((maxy + offsety) / round_factor) * round_factor
+    result.options.yaxis.forceNiceScale = true
+    return result
+})
+
 
 const tags = computed(() => {
     if (task.value == null || task.value.__typename != "Task" || task.value.project == null) {
@@ -243,49 +370,16 @@ const timesheet = computed(() => {
     return Object.values(usersDict).sort((lhs, rhs) => lhs.idx - rhs.idx)
 })
 
-watchEffect(() => {
-    console.log(task.value)
-})
+// watchEffect(() => {
+//     console.log(task.value)
+// })
+
+// watchEffect(() => {
+//     console.log(timesheet.value)
+// })
 
 watchEffect(() => {
-    console.log(timesheet.value)
+    console.log(plot_data)
 })
 
-// const getDotColor = (event) => {
-//     // Implement your logic to determine the dot color based on the activity
-//     // Example: return activity.finished ? 'green' : 'blue';
-//     return 'blue';
-// };
-
-// const getLabel = (event) => {
-//     // Implement your logic to determine the label based on the activity
-//     // Example: return activity.name;
-//     if (event.__typename == "TaskActivityCreated") {
-//         return "Created"
-//     }
-//     if (event.__typename == "TaskActivityFinished") {
-//         return "Finished"
-//     }
-//     if (event.__typename == "TaskActivityWorkperiod") {
-//         if (event.duration != null) {
-//             let s_dur = formatDuration(event.duration)
-//             return `${event.user?.fullName} worked on task for ${s_dur}`
-//         }
-//         else {
-//             return `${event.user?.fullName} started working on task`
-//         }
-//     }
-//     if (event.__typename == "TaskActivityEstimateAdded") {
-//         return `${event.user?.fullName} added estimate`
-//     }
-//     return "<TBD>"
-// };
-
-// const formatTimestamp = (timestamp) => {
-//     // Format the timestamp to your desired format
-//     return formatDatetimeMinutes(DateTime.fromISO(timestamp))
-// };
-const formatDuration = (dur) => {
-    return parseTimedelta(dur).toFormat("hh:mm")
-}
 </script>

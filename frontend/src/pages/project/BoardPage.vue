@@ -3,19 +3,16 @@
     <!-- <div v-if="result" class="self-center text-h4 text-weight-bold">
       {{ result?.project?.name }}
     </div> -->
-    <KanbanBoard v-if="kanbanData != null" :initial-data="kanbanData" @moved-cards="movedCards" />
-    <query-status
-      :loading="loading || (kanbanData == null && error == null)"
-      :error="error"
-    />
+    <KanbanBoard v-if="kanbanData != null" :initial-data="kanbanData" @moved-cards="movedCards" @open-link="openLink" />
+    <query-status :loading="loading || (kanbanData == null && error == null)" :error="error" />
   </q-page>
 </template>
 
 <script setup lang='ts'>
 import { useQuery, useMutation } from '@vue/apollo-composable';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import QueryStatus from 'src/components/QueryStatus.vue';
-import { DateTime } from 'luxon'; 
+import { DateTime } from 'luxon';
 import { computed } from 'vue';
 import KanbanBoard from 'src/components/kanban/KanbanBoard.vue';
 import { qPageStyleFnForTabsFixed } from 'src/common/helper';
@@ -23,6 +20,7 @@ import { KanbanPropsData, Lane, Card } from 'src/components/kanban/interfaces'
 import { graphql } from 'src/gql'
 
 const route = useRoute();
+const router = useRouter();
 const { result, loading, error } = useQuery(
   graphql(`
     query getProjectBoard($dbId: Int!) {
@@ -67,6 +65,10 @@ const { result, loading, error } = useQuery(
     dbId: parseInt(route.params.id as string),
   }
 );
+
+function openLink(evt) {
+  router.push(`/task/${evt.id}`)
+}
 
 const kanbanData = computed(() => {
   if (result.value?.project == null) {
@@ -197,9 +199,9 @@ async function movedCards(evt) {
 
   const response = await moveTasks({
     projectDbId: projectDbId,
-      state: evt.lane,
-      tasks: tasks,
-    }
+    state: evt.lane,
+    tasks: tasks,
+  }
   );
 
   return response;

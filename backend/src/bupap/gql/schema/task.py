@@ -124,6 +124,21 @@ class TaskSchedule:
 
 
 @strawberry.type
+class TaskHistory(DBType, strawberry.relay.Node):
+    """Single entry in the task history."""
+
+    _db_table = db.TaskHistory
+    date: datetime = map_to_db()
+
+    scheduled_average_end: datetime = map_to_db()
+    scheduled_optimistic_end: datetime = map_to_db()
+    scheduled_pessimistic_end: datetime = map_to_db()
+
+    task: Annotated[Task, strawberry.lazy(".task")] = map_to_db()
+    assignee: Annotated[User, strawberry.lazy(".user")] = map_to_db()
+
+
+@strawberry.type
 class Task(DBType, strawberry.relay.Node):
     """A single task to be estimated, scheduled and executed by a user / developer."""
 
@@ -143,6 +158,7 @@ class Task(DBType, strawberry.relay.Node):
     project: Annotated[Project, strawberry.lazy(".project")] = map_to_db()
     work_periods: list[WorkPeriodTask] = map_to_db()
     estimates: list[Annotated[Estimate, strawberry.lazy(".estimate")]] = map_to_db()
+    history: list[TaskHistory] = map_to_db()
 
     @strawberry.field()
     def schedule(self) -> TaskSchedule | None:

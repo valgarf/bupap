@@ -1,17 +1,21 @@
+# stl
 import math
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from itertools import tee
 from typing import Callable, overload
 
+# third-party
 import sqlalchemy as sa
 from loguru import logger
 from more_itertools import peekable
 
+# first-party
 from bupap import db
 from bupap.ui.viewmodel.task import NewEstimate, NewTask, TaskDone
 from bupap.ui.viewmodel.work import WorkPeriodEnd
 
+# local
 from .common import get_from_id, return_obj_or_id, set_task_state
 from .work import end_work_period
 
@@ -343,9 +347,9 @@ class _UserState:
                 next_schedule = None
                 base_iterator = iter([])
                 break
-        self.optimistic_iterator, self.average_iterator, self.pessimistic_iterator = [
+        self.optimistic_iterator, self.average_iterator, self.pessimistic_iterator = (
             peekable(it) for it in tee(base_iterator, 3)
-        ]
+        )
         if next_schedule is not None:
             self.optimistic_iterator.prepend(next_schedule)
             self.average_iterator.prepend(next_schedule)
@@ -547,5 +551,6 @@ def store_schedule_history(now: datetime | None, external_session: db.Session | 
                     scheduled_average_end=t.scheduled_average_end,
                     scheduled_optimistic_end=t.scheduled_optimistic_end,
                     scheduled_pessimistic_end=t.scheduled_pessimistic_end,
+                    assignee=t.scheduled_assignee,
                 )
             )
